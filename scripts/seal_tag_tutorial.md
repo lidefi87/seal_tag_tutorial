@@ -34,6 +34,7 @@ library(terra)
 # Load all other relevant packages here
 library(dplyr)
 library(tidyr)
+library(stringr)
 library(lubridate)
 library(janitor)
 library(ncdf4)
@@ -535,55 +536,70 @@ time_attrs
     $resolution
     [1] "1e-05"
 
-As you can see in the units, `JULD` is days since 1950-01-01 00:00:00
-UTC.
+As you can see in the units, `JULD` is in “days since 1950-01-01
+00:00:00 UTC”. We will store the origin date so we can create a `time`
+column in our data frame.
+
+``` r
+# Get start date from metadata. We will remove all letters
+time_origin <- str_remove_all(time_attrs$units, "[A-z]") |> 
+  # Then we will remove whitespaces at the beginnind and end
+  str_trim()
+
+time_origin
+```
+
+    [1] "1950-01-01 00:00:00"
+
+Let’s clean our data frame.
 
 ``` r
 df <- df |> 
   clean_names() |> 
   # Remember to check the origin date above to get the correct time
-  mutate(time = as_date(juld, origin = "1950-01-01"))
+  mutate(time = as_date(juld, origin = time_origin), .after = "juld")
 
+# Check results
 head(df)
 ```
 
-       n_prof n_levels     pres     juld latitude longitude depth     temp     psal
-        <int>    <int>    <num>    <num>    <num>     <num> <num>    <num>    <num>
-    1:      1        1      NaN 25582.45 -49.3207   70.6816    -1      NaN      NaN
-    2:      1        2      NaN 25582.45 -49.3207   70.6816    -2      NaN      NaN
-    3:      1        3      NaN 25582.45 -49.3207   70.6816    -3      NaN      NaN
-    4:      1        4 4.034372 25582.45 -49.3207   70.6816    -4 4.661057 33.57931
-    5:      1        5 5.042982 25582.45 -49.3207   70.6816    -5 4.660316 33.57979
-    6:      1        6 6.051592 25582.45 -49.3207   70.6816    -6 4.659574 33.58027
-           fluo fluo_drk fluo_drk_npq fluo_drk_npq_fit    light light_drk
-          <num>    <num>        <num>            <num>    <num>     <num>
-    1:      NaN      NaN       1.5856         1.585566      NaN       NaN
-    2:      NaN      NaN       1.5856         1.585768      NaN       NaN
-    3:      NaN      NaN       1.5856         1.585401      NaN       NaN
-    4: 1.428843 1.334754       1.5856         1.585422 18.38356  274439.0
-    5: 1.453570 1.359481       1.5856         1.585890 18.09280  270098.4
-    6: 1.478297 1.384208       1.5856         1.586008 17.80664  265826.5
-       light_drk_sat light_drk_sat_fit light_drk_sat_fit_surf kd_light       time
-               <num>             <num>                  <num>    <num>     <Date>
-    1:           NaN               NaN               500845.7      NaN 2020-01-16
-    2:           NaN               NaN               447968.9      NaN 2020-01-16
-    3:           NaN               NaN               400674.6      NaN 2020-01-16
-    4:           NaN               NaN               358373.4      NaN 2020-01-16
-    5:           NaN               NaN               320538.1      NaN 2020-01-16
-    6:           NaN               NaN               286697.3      NaN 2020-01-16
+       n_prof n_levels     pres     juld       time latitude longitude depth
+        <int>    <int>    <num>    <num>     <Date>    <num>     <num> <num>
+    1:      1        1      NaN 25582.45 2020-01-16 -49.3207   70.6816    -1
+    2:      1        2      NaN 25582.45 2020-01-16 -49.3207   70.6816    -2
+    3:      1        3      NaN 25582.45 2020-01-16 -49.3207   70.6816    -3
+    4:      1        4 4.034372 25582.45 2020-01-16 -49.3207   70.6816    -4
+    5:      1        5 5.042982 25582.45 2020-01-16 -49.3207   70.6816    -5
+    6:      1        6 6.051592 25582.45 2020-01-16 -49.3207   70.6816    -6
+           temp     psal     fluo fluo_drk fluo_drk_npq fluo_drk_npq_fit    light
+          <num>    <num>    <num>    <num>        <num>            <num>    <num>
+    1:      NaN      NaN      NaN      NaN       1.5856         1.585566      NaN
+    2:      NaN      NaN      NaN      NaN       1.5856         1.585768      NaN
+    3:      NaN      NaN      NaN      NaN       1.5856         1.585401      NaN
+    4: 4.661057 33.57931 1.428843 1.334754       1.5856         1.585422 18.38356
+    5: 4.660316 33.57979 1.453570 1.359481       1.5856         1.585890 18.09280
+    6: 4.659574 33.58027 1.478297 1.384208       1.5856         1.586008 17.80664
+       light_drk light_drk_sat light_drk_sat_fit light_drk_sat_fit_surf kd_light
+           <num>         <num>             <num>                  <num>    <num>
+    1:       NaN           NaN               NaN               500845.7      NaN
+    2:       NaN           NaN               NaN               447968.9      NaN
+    3:       NaN           NaN               NaN               400674.6      NaN
+    4:  274439.0           NaN               NaN               358373.4      NaN
+    5:  270098.4           NaN               NaN               320538.1      NaN
+    6:  265826.5           NaN               NaN               286697.3      NaN
 
-Our data frame is looking much better and it is now ready for further
+Our data frame is looking much better and it is now ready for data
 analysis or visual exploration.
 
 ## PART B: CREATE A MAP OF SEAL LOCATIONS
 
 In this section, you will create a map of the seal tag profile
-locations. You will colour the markers based on sea surface properties.
-This type of map will show you not only where the seal traveled during
-its foraging trip, but also give you an idea of the changes in water
+locations. You will colour the points based on ocean properties. This
+type of map will show you not only where the seal traveled during its
+foraging trip, but also give you an idea of the changes in water
 properties it experienced along the way.
 
-### B1: Calculate mean sea surface temperature, salinity and fluorescence
+### B1: Calculate mean sea surface temperature (SST), salinity (SSS) and fluorescence (SSF)
 
 To calculate the mean values for these three variables, you will use
 data for the top 20 m, which you can find in the data frame we loaded in
@@ -601,8 +617,8 @@ to high sunlight level and that are not reflective of real variations in
 chlorophyll-a concentration and phytoplankton biomass.
 
 ``` r
-# Start by selecting any relevant columns
 df_mean20 <- df |> 
+  # Start by selecting any relevant columns
   select(latitude, longitude, depth, time, temp, psal, fluo_drk_npq) |> 
   # Now filter values for the top 20 m
   filter(depth >= -20) |>
@@ -636,42 +652,43 @@ animal experienced during their journey.
 
 ``` r
 profile_map <- ggplot() +
-  # TODO: Add continent boundaries using geom_polygon() and the "world" dataset.
-  # Note: "fill" and "color" control the color of the continents and borders.
+  # Adding world base layer using geom_polygon(). Note that "fill" and "color" 
+  # control the color of the continents and borders, respectively.
   geom_polygon(data = world,
                aes(x = long, y = lat, group = group),
                fill = "lightgray", color = "black", linewidth = 0.2) +
-  # TODO: Add points for profile locations (lat/lon coordinates) and colour them
-  #       in by sea surface temperature.
-  # Hint: The coordinates are stored in the "sea_surf_data" frame. Make sure
-  #       to use the correct names and axes for the lat/lon variables. Provide
-  #       a variable in the "color" option for dynamic colouring.
-  geom_point(data = df_mean20, aes(x = longitude, y = latitude, color = temp),
+  # Adding points for profile locations (lat/lon coordinates) and colouring them
+  # by sea surface temperature.
+  # The coordinates are stored in the data frame we processed above. Make sure
+  # you use the correct names and axes for the lat/lon variables, and provide a
+  # variable in the "colour" option for dynamic colouring.
+  geom_point(data = df_mean20, aes(x = longitude, y = latitude, colour = temp),
              size = 1.5, alpha = 0.7) +
-  # TODO: Add an appropriate color scale.
-  # Hint: CMOCEAN is a great resource for colorblind-friendly color palettes.
-  #       You can find the palettes to choose from and their names here:
-  #       https://cran.r-project.org/web/packages/cmocean/vignettes/cmocean.html
+  # Use an appropriate color scale. CMOCEAN is a great resource for 
+  # colorblind-friendly color palettes. You can find the palettes to choose 
+  # from and their names here:
+  # https://cran.r-project.org/web/packages/cmocean/vignettes/cmocean.html
   scale_color_cmocean("SST (deg C)", name = "thermal") +
-  # TODO: Set polar projection ("ortho") centered on South Pole (-90˚).
+  # Setting polar projection ("ortho") centered on South Pole (-90˚).
   # Note: To rotate the map, change the second "orientation" value.
   coord_map("ortho", orientation = c(-90, 0, 0)) +
-  # Below are a number of things to make the map look nicer...
-  labs(title = "Seal Tag Profile Locations",
-       subtitle = paste("Total profiles:", max(df$n_prof))) +
+  # Adding labels
+  labs(title = paste0("Seal Tag Profile Locations (Platform code: ",
+                      global_attrs$platform_code, ")"),
+       subtitle = paste0("Total profiles: ", max(df$n_prof))) +
+  # Changing x and y axis breaks
   scale_x_continuous(breaks = seq(-180, 180, 30)) +
   scale_y_continuous(breaks = seq(-90, 90, 15)) +
+  # Making the map a little nicer
   theme_minimal() +
   theme(panel.grid = element_line(color = "lightgray", linewidth = 0.2),
         panel.background = element_rect(fill = "white"),
         plot.background = element_rect(fill = "white"),
-        legend.position = "right", axis.title = element_blank(),
-        axis.text = element_blank())
-```
+        legend.position = "right", legend.title = element_text(hjust = 0.5),
+        axis.title = element_blank(), axis.text = element_blank(), 
+        plot.title = element_text(hjust = 0.5))
 
-You can check the map by simply calling the variable it was assigned to.
-
-``` r
+# Checking the result
 profile_map
 ```
 
@@ -702,9 +719,94 @@ to explore other colour palettes that may fit the variable being shown a
 little better (a green palette may be better for fluorescence, for
 example).
 
-### B3: Map the seal tag profiles coloured by sea surface salinity (SSS)
+### B3: Map the seal tag profiles coloured by SSS
 
-### B4: Map the seal tag profiles coloured by sea surface fluorescence (SSF)
+``` r
+# Write your code here
+ggplot() +
+  # Adding world base layer using geom_polygon(). Note that "fill" and "color" 
+  # control the color of the continents and borders, respectively.
+  geom_polygon(data = world,
+               aes(x = long, y = lat, group = group),
+               fill = "lightgray", color = "black", linewidth = 0.2) +
+  # Adding points for profile locations (lat/lon coordinates) and colouring them
+  # by sea surface temperature.
+  # The coordinates are stored in the data frame we processed above. Make sure
+  # you use the correct names and axes for the lat/lon variables, and provide a
+  # variable in the "colour" option for dynamic colouring.
+  geom_point(data = df_mean20, aes(x = longitude, y = latitude, colour = psal),
+             size = 1.5, alpha = 0.7) +
+  # Use an appropriate color scale. CMOCEAN is a great resource for 
+  # colorblind-friendly color palettes. You can find the palettes to choose 
+  # from and their names here:
+  # https://cran.r-project.org/web/packages/cmocean/vignettes/cmocean.html
+  scale_color_cmocean("SSS (psu)", name = "haline") +
+  # Setting polar projection ("ortho") centered on South Pole (-90˚).
+  # Note: To rotate the map, change the second "orientation" value.
+  coord_map("ortho", orientation = c(-90, 0, 0)) +
+  # Adding labels
+  labs(title = paste0("Seal Tag Profile Locations (Platform code: ",
+                      global_attrs$platform_code, ")"),
+       subtitle = paste0("Total profiles: ", max(df$n_prof))) +
+  # Changing x and y axis breaks
+  scale_x_continuous(breaks = seq(-180, 180, 30)) +
+  scale_y_continuous(breaks = seq(-90, 90, 15)) +
+  # Making the map a little nicer
+  theme_minimal() +
+  theme(panel.grid = element_line(color = "lightgray", linewidth = 0.2),
+        panel.background = element_rect(fill = "white"),
+        plot.background = element_rect(fill = "white"),
+        legend.position = "right", legend.title = element_text(hjust = 0.5),
+        axis.title = element_blank(), axis.text = element_blank(), 
+        plot.title = element_text(hjust = 0.5))
+```
+
+![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-23-1.png)
+
+### B4: Map the seal tag profiles coloured by SSF
+
+``` r
+# Write your code here
+ggplot() +
+  # Adding world base layer using geom_polygon(). Note that "fill" and "color" 
+  # control the color of the continents and borders, respectively.
+  geom_polygon(data = world,
+               aes(x = long, y = lat, group = group),
+               fill = "lightgray", color = "black", linewidth = 0.2) +
+  # Adding points for profile locations (lat/lon coordinates) and colouring them
+  # by sea surface temperature.
+  # The coordinates are stored in the data frame we processed above. Make sure
+  # you use the correct names and axes for the lat/lon variables, and provide a
+  # variable in the "colour" option for dynamic colouring.
+  geom_point(data = df_mean20, aes(x = longitude, y = latitude, 
+                                   colour = fluo_drk_npq),
+             size = 1.5, alpha = 0.7) +
+  # Use an appropriate color scale. CMOCEAN is a great resource for 
+  # colorblind-friendly color palettes. You can find the palettes to choose 
+  # from and their names here:
+  # https://cran.r-project.org/web/packages/cmocean/vignettes/cmocean.html
+  scale_color_cmocean(bquote(SSF~(mg%.%m^-3)), name = "algae") +
+  # Setting polar projection ("ortho") centered on South Pole (-90˚).
+  # Note: To rotate the map, change the second "orientation" value.
+  coord_map("ortho", orientation = c(-90, 0, 0)) +
+  # Adding labels
+  labs(title = paste0("Seal Tag Profile Locations (Platform code: ",
+                      global_attrs$platform_code, ")"),
+       subtitle = paste0("Total profiles: ", max(df$n_prof))) +
+  # Changing x and y axis breaks
+  scale_x_continuous(breaks = seq(-180, 180, 30)) +
+  scale_y_continuous(breaks = seq(-90, 90, 15)) +
+  # Making the map a little nicer
+  theme_minimal() +
+  theme(panel.grid = element_line(color = "lightgray", linewidth = 0.2),
+        panel.background = element_rect(fill = "white"),
+        plot.background = element_rect(fill = "white"),
+        legend.position = "right", legend.title = element_text(hjust = 0.5),
+        axis.title = element_blank(), axis.text = element_blank(), 
+        plot.title = element_text(hjust = 0.5))
+```
+
+![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-24-1.png)
 
 ## PART C: TIME SERIES OF SEA SURFACE PROPERTIES
 
@@ -713,37 +815,34 @@ changes over time (and space). You will now create time series plots for
 sea surface temperature, salinity, and fluorescence. These plots will
 show how the seal’s environment changed during its foraging trip.
 
-### C1: Sea surface temperature (SST) time series
+### C1: SST time series
 
 Create a line plot showing how SST changed over time.
 
 ``` r
 sst_timeseries <- df_mean20 |>
   ggplot(aes(x = time, y = temp)) +
-  # TODO: Add a line plot
+  # Creating a line plot
   geom_line(color = "red", linewidth = 1) +
-  # TODO: Add points to show individual measurements
+  # Adding points to show individual measurements
   geom_point(color = "darkred", size = 1.5, alpha = 0.7) +
-  # Create date tick labels formatted "YYYY-MM-DD"
+  # Creating date tick labels formatted as "YYYY-MM-DD"
   scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
-  # TODO: Add appropriate labels
+  # Adding labels to plot
   labs(title = paste0("Mean ocean temperature over top 20 m (deg C) during ", 
                       "seal tagging period"),
-       y = "Sea surface temperature") +
+       y = "SST (deg C)") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         axis.title.x = element_blank(),
         panel.background = element_rect(fill = "white"),
         plot.background = element_rect(fill = "white"))
-```
 
-You can check now check the timeseries.
-
-``` r
+# Checking results
 sst_timeseries
 ```
 
-![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-26-1.png)
+![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-25-1.png)
 
 Finally, we can save the timeseries as an image to our computer.
 
@@ -755,19 +854,66 @@ ggsave(file.path(figure_folder, "sst_timeseries.png"), sst_timeseries,
 Now it is your turn to create timeseries plots for salinity and
 fluorescence. Don’t forget you can use the code above as an example.
 
-### C2: Sea surface salinity time series plot
+### C2: SSS time series
 
 ``` r
-# sss_timeseries
+# Write your code here
+sss_timeseries <- df_mean20 |>
+  ggplot(aes(x = time, y = psal)) +
+  # Creating a line plot
+  geom_line(color = "red", linewidth = 1) +
+  # Adding points to show individual measurements
+  geom_point(color = "darkred", size = 1.5, alpha = 0.7) +
+  # Creating date tick labels formatted as "YYYY-MM-DD"
+  scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
+  # Adding labels to plot
+  labs(title = paste0("Mean ocean salinity over top 20 m (deg C) during ", 
+                      "seal tagging period"),
+       y = paste0("SSS (", salt_attrs$units, ")")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank(),
+        panel.background = element_rect(fill = "white"),
+        plot.background = element_rect(fill = "white"))
+
+# Checking results
+sss_timeseries
 ```
 
-### C3: Sea surface fluorescence time series plot
+![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-27-1.png)
+
+### C3: SSF time series
 
 ``` r
-# ssf_timeseries
+# Write your code here
+ssf_timeseries <- df_mean20 |>
+  ggplot(aes(x = time, y = fluo_drk_npq)) +
+  # Creating a line plot
+  geom_line(color = "red", linewidth = 1) +
+  # Adding points to show individual measurements
+  geom_point(color = "darkred", size = 1.5, alpha = 0.7) +
+  # Creating date tick labels formatted as "YYYY-MM-DD"
+  scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
+  # Adding labels to plot
+  labs(title = paste0("Mean ocean fluorescence over top 20 m (deg C) during ", 
+                      "seal tagging period"),
+       y = bquote(SSF~(mg%.%m^-3))) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank(),
+        panel.background = element_rect(fill = "white"),
+        plot.background = element_rect(fill = "white"))
+
+# Checking results
+ssf_timeseries
 ```
 
-### C4: *OPTIONAL* Combine time series plot
+    Warning: Removed 21 rows containing missing values or values outside the scale range
+    (`geom_point()`).
+
+![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-28-1.png)
+
+### C4: *OPTIONAL* Combine time series plots
 
 We can combine the three time series plots we made so far into a single
 multi-panel figure. But remember, this requires that you already have
@@ -775,7 +921,7 @@ these three plots available. You will also need to ensure two packages:
 `gtable` and `patchwork` were loaded at the beginning of this script.
 
 ``` r
-combined_timeseries <- sst_timeseries / sst_timeseries / sst_timeseries +
+combined_timeseries <- sst_timeseries / sss_timeseries / ssf_timeseries +
   plot_layout(ncol = 1) +
   theme_minimal()
 
@@ -783,7 +929,10 @@ combined_timeseries <- sst_timeseries / sst_timeseries / sst_timeseries +
 combined_timeseries
 ```
 
-![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-30-1.png)
+    Warning: Removed 21 rows containing missing values or values outside the scale range
+    (`geom_point()`).
+
+![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-29-1.png)
 
 Finally, we can save the composite figure.
 
@@ -791,6 +940,9 @@ Finally, we can save the composite figure.
 ggsave(file.path(figure_folder, "combined_timeseries.png"), 
        combined_timeseries, width = 10, height = 12, dpi = 300)
 ```
+
+    Warning: Removed 21 rows containing missing values or values outside the scale range
+    (`geom_point()`).
 
 ## PART D: PRESSURE SECTION PLOTS
 
@@ -840,11 +992,13 @@ temp_section <- section_data |>
   scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
   # TODO: Add appropriate color scale and labels
   scale_fill_cmocean("Temperature (deg C)", name = "thermal", discrete = TRUE) +
-  labs(title = "Ocean temperature (deg C) during seal tagging period",
+  labs(title = "Ocean temperature during seal tagging period",
        y = "Depth (m)") +
+  guides(fill = guide_legend(ncol = 2)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = "right", legend.title = element_text(hjust = 0.5),
+        legend.position = "right", 
+        legend.title = element_text(hjust = 0.5, face = "italic"), 
         axis.title.x = element_blank(),
         panel.background = element_rect(fill = "white"),
         plot.background = element_rect(fill = "white"),
@@ -854,7 +1008,7 @@ temp_section <- section_data |>
 temp_section
 ```
 
-![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-33-1.png)
+![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-32-1.png)
 
 We can now save the figure to our computer.
 
@@ -867,6 +1021,35 @@ ggsave(file.path(figure_folder, "temp_section.png"), temp_section,
 
 Using section D1 as a reference, create a section plot for salinity.
 
+``` r
+# Write your code here
+salt_section <- section_data |>
+  drop_na(psal) |> 
+  ggplot(aes(x = time, y = depth, z = psal)) +
+  # Add filled contours for temperature
+  stat_contour_filled(bins = 10) +
+  # Create date tick labels
+  scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
+  # TODO: Add appropriate color scale and labels
+  scale_fill_cmocean("Salinity (psu)", name = "haline", discrete = TRUE) +
+  labs(title = "Ocean salinity during seal tagging period",
+       y = "Depth (m)") +
+  guides(fill = guide_legend(ncol = 2)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "right", 
+        legend.title = element_text(hjust = 0.5, face = "italic"), 
+        axis.title.x = element_blank(),
+        panel.background = element_rect(fill = "white"),
+        plot.background = element_rect(fill = "white"),
+        plot.title = element_text(hjust = 0.5))
+
+# Let's check the result
+salt_section
+```
+
+![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-34-1.png)
+
 ### D3: Fluorescence section plot
 
 Create a section plot for fluorescence, but note that fluorescence does
@@ -875,4 +1058,46 @@ fluorescence section plot it is better to plot the log of the
 fluorescence values. You can do this by using the `log()` function in
 base `R`.
 
+``` r
+# Write your code here
+fluo_section <- section_data |>
+  drop_na(fluo_drk_npq) |> 
+  ggplot(aes(x = time, y = depth, z = log(fluo_drk_npq))) +
+  # Add filled contours for temperature
+  stat_contour_filled(bins = 10) +
+  # Create date tick labels
+  scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
+  # TODO: Add appropriate color scale and labels
+  scale_fill_cmocean(bquote(Log~fluorescence~(mg%.%m^-3)), name = "algae", 
+                     discrete = TRUE) +
+  labs(title = "Ocean fluorescence during seal tagging period",
+       y = "Depth (m)") +
+  theme_bw() +
+  guides(fill = guide_legend(ncol = 2)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "right",
+        legend.title = element_text(hjust = 0.5, face = "italic"), 
+        axis.title.x = element_blank(),
+        panel.background = element_rect(fill = "white"),
+        plot.background = element_rect(fill = "white"),
+        plot.title = element_text(hjust = 0.5))
+
+# Let's check the result
+fluo_section
+```
+
+![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-35-1.png)
+
 ### D4: *OPTIONAL* Create another multipanel figure.
+
+``` r
+# Write your code here
+combined_section <- (temp_section+theme(axis.text.x = element_blank())) / 
+  (salt_section+theme(axis.text.x = element_blank())) / fluo_section +
+  plot_layout(ncol = 1)
+
+# We can check the result
+combined_section
+```
+
+![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-36-1.png)

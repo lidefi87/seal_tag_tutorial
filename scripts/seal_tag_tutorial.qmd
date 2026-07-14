@@ -278,7 +278,42 @@ Make sure you also save the map to your computer, but don't forget to change the
 
 ```{r}
 # Write your code here
-
+ggplot() +
+  # Adding world base layer using geom_polygon(). Note that "fill" and "color" 
+  # control the color of the continents and borders, respectively.
+  geom_polygon(data = world,
+               aes(x = long, y = lat, group = group),
+               fill = "lightgray", color = "black", linewidth = 0.2) +
+  # Adding points for profile locations (lat/lon coordinates) and colouring them
+  # by sea surface temperature.
+  # The coordinates are stored in the data frame we processed above. Make sure
+  # you use the correct names and axes for the lat/lon variables, and provide a
+  # variable in the "colour" option for dynamic colouring.
+  geom_point(data = df_mean20, aes(x = longitude, y = latitude, colour = psal),
+             size = 1.5, alpha = 0.7) +
+  # Use an appropriate color scale. CMOCEAN is a great resource for 
+  # colorblind-friendly color palettes. You can find the palettes to choose 
+  # from and their names here:
+  # https://cran.r-project.org/web/packages/cmocean/vignettes/cmocean.html
+  scale_color_cmocean("SSS (psu)", name = "haline") +
+  # Setting polar projection ("ortho") centered on South Pole (-90˚).
+  # Note: To rotate the map, change the second "orientation" value.
+  coord_map("ortho", orientation = c(-90, 0, 0)) +
+  # Adding labels
+  labs(title = paste0("Seal Tag Profile Locations (Platform code: ",
+                      global_attrs$platform_code, ")"),
+       subtitle = paste0("Total profiles: ", max(df$n_prof))) +
+  # Changing x and y axis breaks
+  scale_x_continuous(breaks = seq(-180, 180, 30)) +
+  scale_y_continuous(breaks = seq(-90, 90, 15)) +
+  # Making the map a little nicer
+  theme_minimal() +
+  theme(panel.grid = element_line(color = "lightgray", linewidth = 0.2),
+        panel.background = element_rect(fill = "white"),
+        plot.background = element_rect(fill = "white"),
+        legend.position = "right", legend.title = element_text(hjust = 0.5),
+        axis.title = element_blank(), axis.text = element_blank(), 
+        plot.title = element_text(hjust = 0.5))
 ```
 
 
@@ -286,7 +321,43 @@ Make sure you also save the map to your computer, but don't forget to change the
 
 ```{r}
 # Write your code here
-
+ggplot() +
+  # Adding world base layer using geom_polygon(). Note that "fill" and "color" 
+  # control the color of the continents and borders, respectively.
+  geom_polygon(data = world,
+               aes(x = long, y = lat, group = group),
+               fill = "lightgray", color = "black", linewidth = 0.2) +
+  # Adding points for profile locations (lat/lon coordinates) and colouring them
+  # by sea surface temperature.
+  # The coordinates are stored in the data frame we processed above. Make sure
+  # you use the correct names and axes for the lat/lon variables, and provide a
+  # variable in the "colour" option for dynamic colouring.
+  geom_point(data = df_mean20, aes(x = longitude, y = latitude, 
+                                   colour = fluo_drk_npq),
+             size = 1.5, alpha = 0.7) +
+  # Use an appropriate color scale. CMOCEAN is a great resource for 
+  # colorblind-friendly color palettes. You can find the palettes to choose 
+  # from and their names here:
+  # https://cran.r-project.org/web/packages/cmocean/vignettes/cmocean.html
+  scale_color_cmocean(bquote(SSF~(mg%.%m^-3)), name = "algae") +
+  # Setting polar projection ("ortho") centered on South Pole (-90˚).
+  # Note: To rotate the map, change the second "orientation" value.
+  coord_map("ortho", orientation = c(-90, 0, 0)) +
+  # Adding labels
+  labs(title = paste0("Seal Tag Profile Locations (Platform code: ",
+                      global_attrs$platform_code, ")"),
+       subtitle = paste0("Total profiles: ", max(df$n_prof))) +
+  # Changing x and y axis breaks
+  scale_x_continuous(breaks = seq(-180, 180, 30)) +
+  scale_y_continuous(breaks = seq(-90, 90, 15)) +
+  # Making the map a little nicer
+  theme_minimal() +
+  theme(panel.grid = element_line(color = "lightgray", linewidth = 0.2),
+        panel.background = element_rect(fill = "white"),
+        plot.background = element_rect(fill = "white"),
+        legend.position = "right", legend.title = element_text(hjust = 0.5),
+        axis.title = element_blank(), axis.text = element_blank(), 
+        plot.title = element_text(hjust = 0.5))
 ```
 
 ## PART C: TIME SERIES OF SEA SURFACE PROPERTIES
@@ -487,13 +558,13 @@ Create a section plot for fluorescence, but note that fluorescence does not chan
 # Write your code here
 fluo_section <- section_data |>
   drop_na(fluo_drk_npq) |> 
-  ggplot(aes(x = time, y = depth, z = fluo_drk_npq)) +
+  ggplot(aes(x = time, y = depth, z = log(fluo_drk_npq))) +
   # Add filled contours for temperature
   stat_contour_filled(bins = 10) +
   # Create date tick labels
   scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
   # TODO: Add appropriate color scale and labels
-  scale_fill_cmocean(bquote(Fluorescence~(mg%.%m^-3)), name = "algae", 
+  scale_fill_cmocean(bquote(Log~fluorescence~(mg%.%m^-3)), name = "algae", 
                      discrete = TRUE) +
   labs(title = "Ocean fluorescence during seal tagging period",
        y = "Depth (m)") +
