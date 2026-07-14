@@ -1,0 +1,878 @@
+# Seal Tag Data Visualisation Tutorial
+Jake Weis, Denisse Fierro Arcos
+
+## Introduction
+
+This tutorial was originally developed by Jake Weis and updated by
+Denisse Fierro Arcos.
+
+The main aim of this tutorial is to show students how to visualise
+oceanographic data collected by seal-borne tags. These tags measure
+various ocean properties, such as temperature, salinity and
+fluorescence, at different depths and locations. Data from these tags
+are often made available in netCDF format, which is a commonly used
+format for oceanographic data.
+
+By the end of this tutorial, you will be able to:  
+1. Load and examine netCDF files  
+2. Create maps showing spatial distribution of the seal tag data  
+3. Create time series plots of sea surface parameters  
+4. Create “pressure section” plots showing how ocean properties change
+across depths, time and space 5. Interpret oceanographic data with
+respect to seal foraging behaviour
+
+## Loading relevant `R` packages
+
+To access all functions needed in this tutorial, you will need to load
+any relevant packages first. You can load packages using the `library`
+function as shown below. Make sure you read the tutorial instructions
+and load all relevant packages here.
+
+``` r
+library(terra)
+
+# Load all other relevant packages here
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(janitor)
+library(ncdf4)
+library(metR)
+library(ggplot2)
+library(cmocean)
+library(patchwork)
+```
+
+## PART A: LOADING SEAL TAG DATA FROM NETCDF FILES
+
+First, you will learn how to open and explore the netCDF files
+containing the seal tag data. This will help you understand how the data
+is structured and how to extract the variables you need for analysis.
+
+Since this tutorial is stored as an R project, you can provide relative
+file paths. That is, the path should be provided in relation to your
+current directory. If you don’t know what your current directory is, you
+can use the `getwd()` function.
+
+``` r
+getwd()
+```
+
+All netCDF files used in this tutorial are stored in the `data` folder,
+which means you can use the `list.files` functions to get the filepaths
+for all netCDF files. This way you can avoid typing out the filepath for
+each file of interest.
+
+``` r
+# Get a list of netCDF files stored in the data folder
+ras_filepaths <- list.files("../data", pattern = ".nc$", full.names = TRUE)
+
+# Check the files available
+ras_filepaths
+```
+
+    [1] "../data/ct157-F118-20_all_prof_PROCESSED.nc"  
+    [2] "../data/ct160-338-20-N1_all_prof_PROCESSED.nc"
+    [3] "../data/ct160-341-20_all_prof_PROCESSED.nc"   
+    [4] "../data/ft24-920-18_all_prof_PROCESSED.nc"    
+
+### Using `terra` to load netCDF files as gridded (cube) data
+
+The `terra` package for `R` is designed to performed spatial data
+analysis using vector (e.g., lines, points, polygons) and raster
+(gridded) data. It is one of the most commonly used packages for spatial
+analysis.
+
+You can choose whichever file to explore its contents, but you will need
+to create plots for all files.
+
+``` r
+# Choose a netCDF file from the data folder and load it here
+ras <- rast(ras_filepaths[1])
+
+# Check its contents by calling the variable you assigned the netCDF file to
+ras
+```
+
+    class       : SpatRaster
+    size        : 381, 1000, 14  (nrow, ncol, nlyr)
+    resolution  : 1, 1  (x, y)
+    extent      : 0.5, 1000.5, 0.5, 381.5  (xmin, xmax, ymin, ymax)
+    coord. ref. : 
+    sources     : ct157-F118-20_all_prof_PROCESSED.nc
+    varnames    : DEPTH (Depth below sea level (derived from pressure and latitude using GSW equations))
+                  FLUO (Chlorophyll fluorescence)
+                  FLUO_DRK (Chlorophyll fluorescence)
+                  FLUO_DRK_NPQ (Chlorophyll fluorescence)
+                  FLUO_DRK_NPQ_FIT (Chlorophyll fluorescence)
+                  ...
+    names       : DEPTH,  FLUO, FLUO_DRK, FLUO_DRK_NPQ, FLUO_~Q_FIT, KD_LIGHT, ...
+    unit        :     m, mg/m3,    mg/m3,        mg/m3,       mg/m3,      1/m, ...
+
+We can see that this file contains multiple variables (e.g., depth,
+chlorophyll fluorescence, etc.). We can also see the units for each one
+of these variables, the spatial extent of the data, its resolution, but
+it does not have information about a coordinate reference system
+(`coord. ref`) or time.
+
+The `terra` package has multiple functions that allow us to further
+query the metadata (i.e., information about the file) contained in the
+netCDF file. Below, you will find a few functions listed. Check out the
+help to find out how to use them, but the function name is
+self-explanatory.
+
+``` r
+varnames(ras)
+```
+
+     [1] "DEPTH"                  "FLUO"                   "FLUO_DRK"              
+     [4] "FLUO_DRK_NPQ"           "FLUO_DRK_NPQ_FIT"       "KD_LIGHT"              
+     [7] "LIGHT"                  "LIGHT_DRK"              "LIGHT_DRK_SAT"         
+    [10] "LIGHT_DRK_SAT_FIT"      "LIGHT_DRK_SAT_FIT_SURF" "PRES"                  
+    [13] "PSAL"                   "TEMP"                  
+
+`terra` also gives us the option to look at the long names for the
+variables contained in the file. These will include a better description
+of what information each variable contains.
+
+``` r
+longnames(ras)
+```
+
+     [1] "Depth below sea level (derived from pressure and latitude using GSW equations)"
+     [2] "Chlorophyll fluorescence"                                                      
+     [3] "Chlorophyll fluorescence"                                                      
+     [4] "Chlorophyll fluorescence"                                                      
+     [5] "Chlorophyll fluorescence"                                                      
+     [6] "Light attenuation coefficient"                                                 
+     [7] "Photosynthetic photon flux density (PPFD)"                                     
+     [8] "Photosynthetic photon flux density (PPFD)"                                     
+     [9] "Photosynthetic photon flux density (PPFD)"                                     
+    [10] "Photosynthetic photon flux density (PPFD)"                                     
+    [11] "Photosynthetic photon flux density (PPFD)"                                     
+    [12] "Sea water pressure, equals 0 at sea-level"                                     
+    [13] "Sea water practical salinity"                                                  
+    [14] "Sea water temperature in-situ ITS-90 scale"                                    
+
+You may notice that the long names for the fluorescence variables are
+all the same, so we cannot tell exactly what the difference is between
+them. For now, let’s move onto checking the temporal range covered by
+the data.
+
+``` r
+# Checking time
+time(ras)
+```
+
+     [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+
+`terra` cannot identify the time in this file, which is an issue when
+attempting to create time series plots. Finally, let’s check the
+coordinate reference system (CRS).
+
+``` r
+# Checking coordinate reference system (CRS)
+crs(ras)
+```
+
+    [1] ""
+
+Again, `terra` does not return anything for the CRS, which is
+problematic if we want to create maps. We can attempt to access all
+metadata from the file to see if this information was included.
+
+``` r
+# We can also check all metadata
+meta(ras)
+```
+
+    [[1]]
+         [,1] [,2]
+
+    [[2]]
+         [,1] [,2]
+
+    [[3]]
+         [,1] [,2]
+
+    [[4]]
+         [,1] [,2]
+
+    [[5]]
+         [,1] [,2]
+
+    [[6]]
+         [,1] [,2]
+
+    [[7]]
+         [,1] [,2]
+
+    [[8]]
+         [,1] [,2]
+
+    [[9]]
+         [,1] [,2]
+
+    [[10]]
+         [,1] [,2]
+
+    [[11]]
+         [,1] [,2]
+
+    [[12]]
+         [,1] [,2]
+
+    [[13]]
+         [,1] [,2]
+
+    [[14]]
+         [,1] [,2]
+
+It appears `terra` is not reading the complete file metadata, which is
+not ideal. You may have also noticed at the beginning of this section
+that the spatial extent of this file goes well beyond the possible
+values for latitude and longitude (in decimal degrees). We can check the
+spatial extent using the `ext` function from the `terra` package, which
+will return the minimum and maximum values along the `x` and `y`
+dimensions of the raster file. Try it below.
+
+``` r
+ext(ras)
+```
+
+    SpatExtent : 0.5, 1000.5, 0.5, 381.5 (xmin, xmax, ymin, ymax)
+
+As you can see, the maximum value for the `x` dimension goes well beyond
+$\pm 180 ^\circ$ or $360 ^\circ$, and the maximum latitude is also
+beyond $\pm 90 ^\circ$. So, what is happening? Can we trust this
+information? Probably not.
+
+Can we do anything in this case? Yes, luckily, there are plenty of other
+packages available in `R` that allow us to load and analyse gridded
+data. Below, we will use two of these packages: `ncdf4` and `metR`.
+
+### Using `ncdf4` and `metR` to load netCDF files as gridded data
+
+We will load and explore the content of netCDF files using the `ncdf4`
+package.
+
+``` r
+nc_file <- nc_open(ras_filepaths[1])
+nc_file
+```
+
+    File ../data/ct157-F118-20_all_prof_PROCESSED.nc (NC_FORMAT_NETCDF4):
+
+         17 variables (excluding dimension variables):
+            double JULD[N_PROF]   (Contiguous storage)  
+                long_name: Julian day (UTC) of the station relative to REFERENCE_DATE_TIME
+                standard_name: time
+                units: days since 1950-01-01 00:00:00 UTC
+                conventions: Relative julian days with decimal part (as parts of day)
+                axis: T
+                resolution: 1e-05
+            double LATITUDE[N_PROF]   (Contiguous storage)  
+                long_name: Latitude of the station, best estimate
+                standard_name: LATITUDE
+                units: degree_north
+                valid_min: -90
+                valid_max: 90
+                axis: Y
+            double LONGITUDE[N_PROF]   (Contiguous storage)  
+                long_name: Longitude of the station, best estimate
+                standard_name: LONGITUDE
+                units: degree_east
+                valid_min: -90
+                valid_max: 90
+                axis: Y
+            double PRES[N_LEVELS,N_PROF]   (Contiguous storage)  
+                long_name: Sea water pressure, equals 0 at sea-level
+                standard_name: sea_water_pressure
+                POST_PROCESSING: regularised (1-m depth grid)
+                units: decibar
+                valid_min: 0
+                valid_max: 12000
+                resolution: 0.001
+                axis: Z
+            double DEPTH[N_LEVELS,N_PROF]   (Contiguous storage)  
+                long_name: Depth below sea level (derived from pressure and latitude using GSW equations)
+                standard_name: depth_below_sl
+                POST_PROCESSING: regularised (1-m depth grid)
+                units: m
+                valid_min: -12000
+                valid_max: 0
+                resolution: 0.001
+                axis: Z
+            double TEMP[N_LEVELS,N_PROF]   (Contiguous storage)  
+                long_name: Sea water temperature in-situ ITS-90 scale
+                standard_name: temperature
+                POST_PROCESSING: regularised (1-m depth grid)
+                units: degree_Celsius
+                valid_min: -2.5
+                valid_max: 40
+                resolution: 0.001
+            double PSAL[N_LEVELS,N_PROF]   (Contiguous storage)  
+                long_name: Sea water practical salinity
+                standard_name: practical_salinity
+                POST_PROCESSING: regularised (1-m depth grid)
+                units: psu
+                valid_min: 2
+                valid_max: 41
+                resolution: 1e-04
+            double FLUO[N_LEVELS,N_PROF]   (Contiguous storage)  
+                long_name: Chlorophyll fluorescence
+                standard_name: mass_concentration_of_chlorophyll_a_in_sea_water
+                POST_PROCESSING: regularised (1-m depth grid)
+                units: mg/m3
+            double FLUO_DRK[N_LEVELS,N_PROF]   (Contiguous storage)  
+                long_name: Chlorophyll fluorescence
+                standard_name: mass_concentration_of_chlorophyll_a_in_sea_water
+                POST_PROCESSING: regularised, dark-corrected
+                units: mg/m3
+            double FLUO_DRK_NPQ[N_LEVELS,N_PROF]   (Contiguous storage)  
+                long_name: Chlorophyll fluorescence
+                standard_name: mass_concentration_of_chlorophyll_a_in_sea_water
+                POST_PROCESSING: regularised, dark-corrected, NPQ-corrected
+                units: mg/m3
+            double FLUO_DRK_NPQ_FIT[N_LEVELS,N_PROF]   (Contiguous storage)  
+                long_name: Chlorophyll fluorescence
+                standard_name: mass_concentration_of_chlorophyll_a_in_sea_water
+                POST_PROCESSING: regularised, dark-corrected, NPQ-corrected, smoothed (bspline fit)
+                units: mg/m3
+            double LIGHT[N_LEVELS,N_PROF]   (Contiguous storage)  
+                long_name: Photosynthetic photon flux density (PPFD)
+                standard_name: PPFD
+                POST_PROCESSING: regularised (1-m depth grid)
+                units: µmol/m2/s
+            double LIGHT_DRK[N_LEVELS,N_PROF]   (Contiguous storage)  
+                long_name: Photosynthetic photon flux density (PPFD)
+                standard_name: PPFD
+                POST_PROCESSING: regularised, dark-corrected
+                units: µmol/m2/s
+            double LIGHT_DRK_SAT[N_LEVELS,N_PROF]   (Contiguous storage)  
+                long_name: Photosynthetic photon flux density (PPFD)
+                standard_name: PPFD
+                POST_PROCESSING: regularised, dark-corrected, saturation-corrected
+                units: µmol/m2/s
+            double LIGHT_DRK_SAT_FIT[N_LEVELS,N_PROF]   (Contiguous storage)  
+                long_name: Photosynthetic photon flux density (PPFD)
+                standard_name: PPFD
+                POST_PROCESSING: regularised, dark-corrected, saturation-corrected, smoothed (bspline fit)
+                units: µmol/m2/s
+            double LIGHT_DRK_SAT_FIT_SURF[N_LEVELS,N_PROF]   (Contiguous storage)  
+                long_name: Photosynthetic photon flux density (PPFD)
+                standard_name: PPFD
+                POST_PROCESSING: regularised, dark-corrected, saturation-corrected, smoothed (bspline fit), extrapolated to surface
+                units: µmol/m2/s
+            double KD_LIGHT[N_LEVELS,N_PROF]   (Contiguous storage)  
+                long_name: Light attenuation coefficient
+                standard_name: light_attenuation_coefficient
+                POST_PROCESSING: attenuation derived from PPFD
+                units: 1/m
+
+         2 dimensions:
+            N_PROF  Size:381 (no dimvar)
+            N_LEVELS  Size:1000 (no dimvar)
+
+        48 global attributes:
+            POSTPROCESS: J. WEIS, DATE: 31-Jul-2025 15:55:19, https://github.com/JakeWeis/lfm_ses
+            ORIGINAL_FILE_NAME: ct157-F118-20_all_prof.nc (global attributes below copied from original file)
+            comment:  
+            pi_name: IMOS
+            data_type: Marine animals profile data
+            format_version: 1.1
+            date_update: 2024-03-07T10:37:00Z
+            version_database: MEOP-CTD_2024-03-08
+            PI: IMOS
+            reference_file_name: ct157-F118-20_prof.nc
+            is_the_data_public: yes: data can be used freely providing that data owner is properly cited (see meop.net for citing information)
+            nation: AUSTRALIA
+            deployment_code: ct157
+            source: Marine mammal observation
+            data_mode: D
+            references: http://www.meop.net
+            reference_doi:  
+            Conventions: CF-1.6 Sea-mammals-1.1
+            Netcdf_version: NETCDF3_CLASSIC
+            naming_authority: MEOP consortium (Marine Mammals Exploring the Oceans Pole to Pole)
+            cdm_data_type: Station
+            geospatial_vertical_min: 0
+            geospatial_vertical_max: 2000
+            data_assembly_center: MEOP/Fabien Roquet (MISU)
+            distribution_statement: Follow MEOP data policy standards, cf. http://www.meop.net/the-dataset/data-access.html. Data available free of charge. User assumes all risk for use of data. User must display citation in any publication or product using data. User must contact PI prior to any commercial use of data
+            citation: The marine mammal data were collected and made freely available by the International MEOP Consortium and the national programs that contribute to it (http://www.meop.net).
+            thermal_lag_adjustment: yes
+            platform_code: ct157-F118-20
+            wmo_platform_code: Q9901325
+            smru_platform_code: ct157-F118-20
+            species: Southern elephant seal
+            time_coverage_start: 2019-12-24T00:00:00Z
+            time_coverage_end: 2020-09-01T00:00:00Z
+            location: Kerguelen
+            loc_algorithm: CLS LEAST SQUARES
+            firmware_version: 209
+            firmware_parameters: FTD_GEN_18B
+            instr_id: 15118
+            ptt: 196987
+            number_of_ts_profiles: 381
+            number_of_t_profiles: 381
+            number_chla_profiles: 361
+            number_doxy_profiles: 0
+            number_light_profiles: 359
+            geospatial_lat_min: -68.3164
+            geospatial_lat_max: -49.3207
+            geospatial_lon_min: 66.7948
+            geospatial_lon_max: 79.1347
+
+As you can see, we get much detailed metadata using this package. We can
+even see a full description for the variables with names starting with
+`FLUO`, which means we can now understand how they all differ. We have
+all the extra information we need. We will store some of this metadata
+though because it may be useful when processing data. For now, we will
+store metadata for temperature, salinity, fluorescence, and time
+variables, as well as global attributes. For the fluorescence we will
+choose the the dark-, NPQ-corrected fluorescence, and you can find more
+details about the reasons why in Section B1.
+
+``` r
+time_attrs <- ncatt_get(nc_file, "JULD")
+temp_attrs <- ncatt_get(nc_file, "TEMP")
+salt_attrs <- ncatt_get(nc_file, "PSAL")
+fluo_attrs <- ncatt_get(nc_file, "FLUO_DRK_NPQ")
+global_attrs <- ncatt_get(nc_file, 0)
+```
+
+You can check the metadata by calling the variable of interest.
+
+``` r
+fluo_attrs
+```
+
+    $long_name
+    [1] "Chlorophyll fluorescence"
+
+    $standard_name
+    [1] "mass_concentration_of_chlorophyll_a_in_sea_water"
+
+    $POST_PROCESSING
+    [1] "regularised, dark-corrected, NPQ-corrected"
+
+    $units
+    [1] "mg/m3"
+
+Now that we have every we need, we can close the connection to the
+netCDF file. But if you later realise you forgot something, you can
+either load the file and extract metadata as we have done above or
+simply refer to the printed metadata above.
+
+``` r
+nc_close(nc_file)
+```
+
+We will now use the `metR` package to load the netCDF file as a data
+frame as this facilitates data analysis in `R`.
+
+``` r
+# Load the file
+df <- ReadNetCDF(ras_filepaths[1])
+
+# You can check the first few rows of this file
+head(df)
+```
+
+       N_PROF N_LEVELS     PRES     JULD LATITUDE LONGITUDE DEPTH     TEMP     PSAL
+        <int>    <int>    <num>    <num>    <num>     <num> <num>    <num>    <num>
+    1:      1        1      NaN 25582.45 -49.3207   70.6816    -1      NaN      NaN
+    2:      1        2      NaN 25582.45 -49.3207   70.6816    -2      NaN      NaN
+    3:      1        3      NaN 25582.45 -49.3207   70.6816    -3      NaN      NaN
+    4:      1        4 4.034372 25582.45 -49.3207   70.6816    -4 4.661057 33.57931
+    5:      1        5 5.042982 25582.45 -49.3207   70.6816    -5 4.660316 33.57979
+    6:      1        6 6.051592 25582.45 -49.3207   70.6816    -6 4.659574 33.58027
+           FLUO FLUO_DRK FLUO_DRK_NPQ FLUO_DRK_NPQ_FIT    LIGHT LIGHT_DRK
+          <num>    <num>        <num>            <num>    <num>     <num>
+    1:      NaN      NaN       1.5856         1.585566      NaN       NaN
+    2:      NaN      NaN       1.5856         1.585768      NaN       NaN
+    3:      NaN      NaN       1.5856         1.585401      NaN       NaN
+    4: 1.428843 1.334754       1.5856         1.585422 18.38356  274439.0
+    5: 1.453570 1.359481       1.5856         1.585890 18.09280  270098.4
+    6: 1.478297 1.384208       1.5856         1.586008 17.80664  265826.5
+       LIGHT_DRK_SAT LIGHT_DRK_SAT_FIT LIGHT_DRK_SAT_FIT_SURF KD_LIGHT
+               <num>             <num>                  <num>    <num>
+    1:           NaN               NaN               500845.7      NaN
+    2:           NaN               NaN               447968.9      NaN
+    3:           NaN               NaN               400674.6      NaN
+    4:           NaN               NaN               358373.4      NaN
+    5:           NaN               NaN               320538.1      NaN
+    6:           NaN               NaN               286697.3      NaN
+
+You can check that all variables included in the metadata are included
+in the data frame above. However, we will clean up this data frame a
+little. First, we will use the `janitor` package to change the column
+names to lowercase so it is easy to refer to them. Afterwards, we will
+need to change the `JULD` column to a date as it currently is in number
+of days. How do I know this? I checked the time metadata we stored
+above. Print it below and see for yourself.
+
+``` r
+time_attrs
+```
+
+    $long_name
+    [1] "Julian day (UTC) of the station relative to REFERENCE_DATE_TIME"
+
+    $standard_name
+    [1] "time"
+
+    $units
+    [1] "days since 1950-01-01 00:00:00 UTC"
+
+    $conventions
+    [1] "Relative julian days with decimal part (as parts of day)"
+
+    $axis
+    [1] "T"
+
+    $resolution
+    [1] "1e-05"
+
+As you can see in the units, `JULD` is days since 1950-01-01 00:00:00
+UTC.
+
+``` r
+df <- df |> 
+  clean_names() |> 
+  # Remember to check the origin date above to get the correct time
+  mutate(time = as_date(juld, origin = "1950-01-01"))
+
+head(df)
+```
+
+       n_prof n_levels     pres     juld latitude longitude depth     temp     psal
+        <int>    <int>    <num>    <num>    <num>     <num> <num>    <num>    <num>
+    1:      1        1      NaN 25582.45 -49.3207   70.6816    -1      NaN      NaN
+    2:      1        2      NaN 25582.45 -49.3207   70.6816    -2      NaN      NaN
+    3:      1        3      NaN 25582.45 -49.3207   70.6816    -3      NaN      NaN
+    4:      1        4 4.034372 25582.45 -49.3207   70.6816    -4 4.661057 33.57931
+    5:      1        5 5.042982 25582.45 -49.3207   70.6816    -5 4.660316 33.57979
+    6:      1        6 6.051592 25582.45 -49.3207   70.6816    -6 4.659574 33.58027
+           fluo fluo_drk fluo_drk_npq fluo_drk_npq_fit    light light_drk
+          <num>    <num>        <num>            <num>    <num>     <num>
+    1:      NaN      NaN       1.5856         1.585566      NaN       NaN
+    2:      NaN      NaN       1.5856         1.585768      NaN       NaN
+    3:      NaN      NaN       1.5856         1.585401      NaN       NaN
+    4: 1.428843 1.334754       1.5856         1.585422 18.38356  274439.0
+    5: 1.453570 1.359481       1.5856         1.585890 18.09280  270098.4
+    6: 1.478297 1.384208       1.5856         1.586008 17.80664  265826.5
+       light_drk_sat light_drk_sat_fit light_drk_sat_fit_surf kd_light       time
+               <num>             <num>                  <num>    <num>     <Date>
+    1:           NaN               NaN               500845.7      NaN 2020-01-16
+    2:           NaN               NaN               447968.9      NaN 2020-01-16
+    3:           NaN               NaN               400674.6      NaN 2020-01-16
+    4:           NaN               NaN               358373.4      NaN 2020-01-16
+    5:           NaN               NaN               320538.1      NaN 2020-01-16
+    6:           NaN               NaN               286697.3      NaN 2020-01-16
+
+Our data frame is looking much better and it is now ready for further
+analysis or visual exploration.
+
+## PART B: CREATE A MAP OF SEAL LOCATIONS
+
+In this section, you will create a map of the seal tag profile
+locations. You will colour the markers based on sea surface properties.
+This type of map will show you not only where the seal traveled during
+its foraging trip, but also give you an idea of the changes in water
+properties it experienced along the way.
+
+### B1: Calculate mean sea surface temperature, salinity and fluorescence
+
+To calculate the mean values for these three variables, you will use
+data for the top 20 m, which you can find in the data frame we loaded in
+the step prior.
+
+You probably already noticed that there are multiple fluorescence
+variables. For this exercise, we will be using the dark-, NPQ-corrected
+fluorescence. NPQ stands for “non-photochemical-quenching”, a mechanism
+that acts as a sort of sunblock for phytoplankton, reducing their
+fluorescence during daytime. NPQ allows cells to dissipate excess energy
+as heat to prevent damage to the cell’s reaction centres, but this
+inhibits photosynthesis and decreases fluorescence. NPQ-corrected
+fluorescence will therefore exclude any low fluorescence values linked
+to high sunlight level and that are not reflective of real variations in
+chlorophyll-a concentration and phytoplankton biomass.
+
+``` r
+# Start by selecting any relevant columns
+df_mean20 <- df |> 
+  select(latitude, longitude, depth, time, temp, psal, fluo_drk_npq) |> 
+  # Now filter values for the top 20 m
+  filter(depth >= -20) |>
+  # Finally calculate the mean for the variables of interest
+  summarise(across(temp:fluo_drk_npq, ~ mean(.x, na.rm = TRUE)), 
+            .by = c(latitude, longitude, time))
+
+head(df_mean20)
+```
+
+      latitude longitude       time     temp     psal fluo_drk_npq
+    1 -49.3207   70.6816 2020-01-16 4.646376 33.58236    1.5800516
+    2 -49.5783   70.8867 2020-01-16 3.965691 33.69978    0.7059436
+    3 -49.9512   71.1712 2020-01-17 4.048987 33.73172    6.5436650
+    4 -50.6172   71.0817 2020-01-17 3.673013 33.72612    6.1125240
+    5 -51.1415   71.1833 2020-01-18 3.633627 33.70434    3.4518348
+    6 -51.3621   71.1441 2020-01-18 3.648138 33.69457    1.1732775
+
+### B2: Map seal tag profiles coloured by SST
+
+First, we will get a world map layer to use as a base map in our maps.
+
+``` r
+world <- map_data("world")
+```
+
+Now we will create a map with polar stereographic projection using the
+seal tag data, which is distributed around the Southern Ocean. Remember
+that we will colour the tracks by the sea surface temperature each
+animal experienced during their journey.
+
+``` r
+profile_map <- ggplot() +
+  # TODO: Add continent boundaries using geom_polygon() and the "world" dataset.
+  # Note: "fill" and "color" control the color of the continents and borders.
+  geom_polygon(data = world,
+               aes(x = long, y = lat, group = group),
+               fill = "lightgray", color = "black", linewidth = 0.2) +
+  # TODO: Add points for profile locations (lat/lon coordinates) and colour them
+  #       in by sea surface temperature.
+  # Hint: The coordinates are stored in the "sea_surf_data" frame. Make sure
+  #       to use the correct names and axes for the lat/lon variables. Provide
+  #       a variable in the "color" option for dynamic colouring.
+  geom_point(data = df_mean20, aes(x = longitude, y = latitude, color = temp),
+             size = 1.5, alpha = 0.7) +
+  # TODO: Add an appropriate color scale.
+  # Hint: CMOCEAN is a great resource for colorblind-friendly color palettes.
+  #       You can find the palettes to choose from and their names here:
+  #       https://cran.r-project.org/web/packages/cmocean/vignettes/cmocean.html
+  scale_color_cmocean("SST (deg C)", name = "thermal") +
+  # TODO: Set polar projection ("ortho") centered on South Pole (-90˚).
+  # Note: To rotate the map, change the second "orientation" value.
+  coord_map("ortho", orientation = c(-90, 0, 0)) +
+  # Below are a number of things to make the map look nicer...
+  labs(title = "Seal Tag Profile Locations",
+       subtitle = paste("Total profiles:", max(df$n_prof))) +
+  scale_x_continuous(breaks = seq(-180, 180, 30)) +
+  scale_y_continuous(breaks = seq(-90, 90, 15)) +
+  theme_minimal() +
+  theme(panel.grid = element_line(color = "lightgray", linewidth = 0.2),
+        panel.background = element_rect(fill = "white"),
+        plot.background = element_rect(fill = "white"),
+        legend.position = "right", axis.title = element_blank(),
+        axis.text = element_blank())
+```
+
+You can check the map by simply calling the variable it was assigned to.
+
+``` r
+profile_map
+```
+
+![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-21-1.png)
+
+We can also save the map as an image to our computer.
+
+``` r
+# We can create a figure directory
+figure_folder <- "../figures"
+
+if(!dir.exists(figure_folder)){
+  dir.create(figure_folder)
+}
+
+# Now we can save the figure into the correct directory
+ggsave(file.path(figure_folder, "profile_map_temp.png"), profile_map,
+       width = 12, height = 8, dpi = 300)
+```
+
+Now you can try creating maps using other variables to colour the
+tracks. You can do this by adjusting the code shown in this section
+(B2).
+
+Make sure you also save the map to your computer, but don’t forget to
+change the filename so the figure is not overwritten. Finally, feel free
+to explore other colour palettes that may fit the variable being shown a
+little better (a green palette may be better for fluorescence, for
+example).
+
+### B3: Map the seal tag profiles coloured by sea surface salinity (SSS)
+
+### B4: Map the seal tag profiles coloured by sea surface fluorescence (SSF)
+
+## PART C: TIME SERIES OF SEA SURFACE PROPERTIES
+
+Time series plots usually provide a clearer view of how a variable
+changes over time (and space). You will now create time series plots for
+sea surface temperature, salinity, and fluorescence. These plots will
+show how the seal’s environment changed during its foraging trip.
+
+### C1: Sea surface temperature (SST) time series
+
+Create a line plot showing how SST changed over time.
+
+``` r
+sst_timeseries <- df_mean20 |>
+  ggplot(aes(x = time, y = temp)) +
+  # TODO: Add a line plot
+  geom_line(color = "red", linewidth = 1) +
+  # TODO: Add points to show individual measurements
+  geom_point(color = "darkred", size = 1.5, alpha = 0.7) +
+  # Create date tick labels formatted "YYYY-MM-DD"
+  scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
+  # TODO: Add appropriate labels
+  labs(title = paste0("Mean ocean temperature over top 20 m (deg C) during ", 
+                      "seal tagging period"),
+       y = "Sea surface temperature") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank(),
+        panel.background = element_rect(fill = "white"),
+        plot.background = element_rect(fill = "white"))
+```
+
+You can check now check the timeseries.
+
+``` r
+sst_timeseries
+```
+
+![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-26-1.png)
+
+Finally, we can save the timeseries as an image to our computer.
+
+``` r
+ggsave(file.path(figure_folder, "sst_timeseries.png"), sst_timeseries,
+       width = 10, height = 6, dpi = 300)
+```
+
+Now it is your turn to create timeseries plots for salinity and
+fluorescence. Don’t forget you can use the code above as an example.
+
+### C2: Sea surface salinity time series plot
+
+``` r
+# sss_timeseries
+```
+
+### C3: Sea surface fluorescence time series plot
+
+``` r
+# ssf_timeseries
+```
+
+### C4: *OPTIONAL* Combine time series plot
+
+We can combine the three time series plots we made so far into a single
+multi-panel figure. But remember, this requires that you already have
+these three plots available. You will also need to ensure two packages:
+`gtable` and `patchwork` were loaded at the beginning of this script.
+
+``` r
+combined_timeseries <- sst_timeseries / sst_timeseries / sst_timeseries +
+  plot_layout(ncol = 1) +
+  theme_minimal()
+
+# We can check the result
+combined_timeseries
+```
+
+![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-30-1.png)
+
+Finally, we can save the composite figure.
+
+``` r
+ggsave(file.path(figure_folder, "combined_timeseries.png"), 
+       combined_timeseries, width = 10, height = 12, dpi = 300)
+```
+
+## PART D: PRESSURE SECTION PLOTS
+
+A section plot is a helpful way to visualise the water column properties
+along a transect, as a function of depth (y-axis) and time/location
+(x-axis). These plots basically show a vertical cut through the ocean as
+the seal experienced it during its trip. You will now create section
+plots for temperature, salinity, and fluorescence, which will show us
+the water mass properties the seal tag recorded.
+
+First, we will prepare the raw data to create the section plots more
+easily. We will simply select the columns that we will need to create
+the plots.
+
+``` r
+section_data <- df |> 
+  select(longitude, latitude, time, depth, pres, temp, psal, fluo_drk_npq)
+
+head(section_data)
+```
+
+       longitude latitude       time depth     pres     temp     psal fluo_drk_npq
+           <num>    <num>     <Date> <num>    <num>    <num>    <num>        <num>
+    1:   70.6816 -49.3207 2020-01-16    -1      NaN      NaN      NaN       1.5856
+    2:   70.6816 -49.3207 2020-01-16    -2      NaN      NaN      NaN       1.5856
+    3:   70.6816 -49.3207 2020-01-16    -3      NaN      NaN      NaN       1.5856
+    4:   70.6816 -49.3207 2020-01-16    -4 4.034372 4.661057 33.57931       1.5856
+    5:   70.6816 -49.3207 2020-01-16    -5 5.042982 4.660316 33.57979       1.5856
+    6:   70.6816 -49.3207 2020-01-16    -6 6.051592 4.659574 33.58027       1.5856
+
+### D1: Temperature section plot
+
+In this section, we will create a contour plot showing temperature vs
+depth and time. **Hint:** Depth should be plotted on the vertical (y)
+axis and the date on the horizontal (x) axis. The z axis will be
+whatever ocean variable you want to include in the plot.
+
+For this example, we will use mean ocean temperature (`temp`).
+
+``` r
+temp_section <- section_data |>
+  drop_na(temp) |> 
+  ggplot(aes(x = time, y = depth, z = temp)) +
+  # Add filled contours for temperature
+  stat_contour_filled(bins = 10) +
+  # Create date tick labels
+  scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
+  # TODO: Add appropriate color scale and labels
+  scale_fill_cmocean("Temperature (deg C)", name = "thermal", discrete = TRUE) +
+  labs(title = "Ocean temperature (deg C) during seal tagging period",
+       y = "Depth (m)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "right", legend.title = element_text(hjust = 0.5),
+        axis.title.x = element_blank(),
+        panel.background = element_rect(fill = "white"),
+        plot.background = element_rect(fill = "white"),
+        plot.title = element_text(hjust = 0.5))
+
+# Let's check the result
+temp_section
+```
+
+![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-33-1.png)
+
+We can now save the figure to our computer.
+
+``` r
+ggsave(file.path(figure_folder, "temp_section.png"), temp_section, 
+       width = 14, height = 8, dpi = 300)
+```
+
+### D2: Salinity section plot
+
+Using section D1 as a reference, create a section plot for salinity.
+
+### D3: Fluorescence section plot
+
+Create a section plot for fluorescence, but note that fluorescence does
+not change linearly. Instead it changes exponentially, so for the
+fluorescence section plot it is better to plot the log of the
+fluorescence values. You can do this by using the `log()` function in
+base `R`.
+
+### D4: *OPTIONAL* Create another multipanel figure.
