@@ -41,7 +41,7 @@ library(ncdf4)
 library(metR)
 library(ggplot2)
 library(cmocean)
-library(patchwork)
+library(cowplot)
 ```
 
 ## PART A: LOADING SEAL TAG DATA FROM NETCDF FILES
@@ -832,7 +832,7 @@ sst_timeseries <- df_mean20 |>
   labs(title = paste0("Mean ocean temperature over top 20 m (deg C) during ", 
                       "seal tagging period"),
        y = "SST (deg C)") +
-  theme_minimal() +
+  theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         axis.title.x = element_blank(),
         panel.background = element_rect(fill = "white"),
@@ -870,7 +870,7 @@ sss_timeseries <- df_mean20 |>
   labs(title = paste0("Mean ocean salinity over top 20 m (deg C) during ", 
                       "seal tagging period"),
        y = paste0("SSS (", salt_attrs$units, ")")) +
-  theme_minimal() +
+  theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         axis.title.x = element_blank(),
         panel.background = element_rect(fill = "white"),
@@ -898,7 +898,7 @@ ssf_timeseries <- df_mean20 |>
   labs(title = paste0("Mean ocean fluorescence over top 20 m (deg C) during ", 
                       "seal tagging period"),
        y = bquote(SSF~(mg%.%m^-3))) +
-  theme_minimal() +
+  theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         axis.title.x = element_blank(),
         panel.background = element_rect(fill = "white"),
@@ -921,16 +921,20 @@ these three plots available. You will also need to ensure two packages:
 `gtable` and `patchwork` were loaded at the beginning of this script.
 
 ``` r
-combined_timeseries <- sst_timeseries / sss_timeseries / ssf_timeseries +
-  plot_layout(ncol = 1) +
-  theme_minimal()
-
-# We can check the result
-combined_timeseries
+combined_timeseries <- plot_grid(
+  plotlist = c(sst_timeseries + theme(axis.text.x = element_blank()),
+               sss_timeseries + theme(axis.text.x = element_blank()),
+               ssf_timeseries), 
+  labels = c("A", "B", "C"), ncol = 1, rel_heights = c(1, 1, 1.6))
 ```
 
     Warning: Removed 21 rows containing missing values or values outside the scale range
     (`geom_point()`).
+
+``` r
+# We can check the result
+combined_timeseries
+```
 
 ![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-29-1.png)
 
@@ -940,9 +944,6 @@ Finally, we can save the composite figure.
 ggsave(file.path(figure_folder, "combined_timeseries.png"), 
        combined_timeseries, width = 10, height = 12, dpi = 300)
 ```
-
-    Warning: Removed 21 rows containing missing values or values outside the scale range
-    (`geom_point()`).
 
 ## PART D: PRESSURE SECTION PLOTS
 
@@ -992,11 +993,12 @@ temp_section <- section_data |>
   scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
   # TODO: Add appropriate color scale and labels
   scale_fill_cmocean("Temperature (deg C)", name = "thermal", discrete = TRUE) +
-  labs(title = "Ocean temperature during seal tagging period",
+  labs(title = "Ocean temperature",
        y = "Depth (m)") +
   guides(fill = guide_legend(ncol = 2)) +
-  theme_minimal() +
+  theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.ticks.length.x = unit(0.2, "cm"),
         legend.position = "right", 
         legend.title = element_text(hjust = 0.5, face = "italic"), 
         axis.title.x = element_blank(),
@@ -1026,17 +1028,15 @@ Using section D1 as a reference, create a section plot for salinity.
 salt_section <- section_data |>
   drop_na(psal) |> 
   ggplot(aes(x = time, y = depth, z = psal)) +
-  # Add filled contours for temperature
   stat_contour_filled(bins = 10) +
-  # Create date tick labels
   scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
-  # TODO: Add appropriate color scale and labels
   scale_fill_cmocean("Salinity (psu)", name = "haline", discrete = TRUE) +
-  labs(title = "Ocean salinity during seal tagging period",
+  labs(title = "Ocean salinity",
        y = "Depth (m)") +
   guides(fill = guide_legend(ncol = 2)) +
-  theme_minimal() +
+  theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.ticks.length.x = unit(0.2, "cm"),
         legend.position = "right", 
         legend.title = element_text(hjust = 0.5, face = "italic"), 
         axis.title.x = element_blank(),
@@ -1063,18 +1063,16 @@ base `R`.
 fluo_section <- section_data |>
   drop_na(fluo_drk_npq) |> 
   ggplot(aes(x = time, y = depth, z = log(fluo_drk_npq))) +
-  # Add filled contours for temperature
   stat_contour_filled(bins = 10) +
-  # Create date tick labels
   scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
-  # TODO: Add appropriate color scale and labels
   scale_fill_cmocean(bquote(Log~fluorescence~(mg%.%m^-3)), name = "algae", 
                      discrete = TRUE) +
-  labs(title = "Ocean fluorescence during seal tagging period",
+  labs(title = "Ocean fluorescence",
        y = "Depth (m)") +
   theme_bw() +
   guides(fill = guide_legend(ncol = 2)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.ticks.length.x = unit(0.2, "cm"),
         legend.position = "right",
         legend.title = element_text(hjust = 0.5, face = "italic"), 
         axis.title.x = element_blank(),
@@ -1092,12 +1090,25 @@ fluo_section
 
 ``` r
 # Write your code here
-combined_section <- (temp_section+theme(axis.text.x = element_blank())) / 
-  (salt_section+theme(axis.text.x = element_blank())) / fluo_section +
-  plot_layout(ncol = 1)
+combined_section <- plot_grid(
+  NULL,
+  plot_grid(
+    plotlist = c(temp_section+theme(axis.text.x = element_blank()),
+                 plot_grid(salt_section+theme(axis.text.x = element_blank()), 
+                           NULL, rel_widths = c(1, 0.03)),
+                 fluo_section), 
+    rel_heights = c(1, 1, 1.3), ncol = 1, labels = c("A", "B", "C")),
+  rel_heights = c(0.075, 1), ncol = 1)+
+  draw_text(paste0("Tagging data from ", global_attrs$platform_code), 
+            y = 0.97, x = 0.5, size = 14, fontface = "bold")
 
 # We can check the result
 combined_section
 ```
 
 ![](seal_tag_tutorial_files/figure-commonmark/unnamed-chunk-36-1.png)
+
+``` r
+ggsave("../figures/combined_section_plots.png", device = "png", width = 14, 
+       height = 8, bg = "white")
+```
