@@ -1,7 +1,7 @@
 ---
 title: "Seal Tag Data Visualisation Tutorial"
 author: "Jake Weis, Denisse Fierro Arcos"
-format: gfm
+  format: gfm
 ---
 
 ## Introduction
@@ -20,19 +20,11 @@ By the end of this tutorial, you will be able to:
 To access all functions needed in this tutorial, you will need to load any relevant packages first. You can load packages using the `library` function as shown below. Make sure you read the tutorial instructions and load all relevant packages here.
 
 ```{r, warning = FALSE, output = FALSE}
+# Example of how to load packages
 library(terra)
 
 # Load all other relevant packages here
-library(dplyr)
-library(tidyr)
-library(stringr)
-library(lubridate)
-library(janitor)
-library(ncdf4)
-library(metR)
-library(ggplot2)
-library(cmocean)
-library(cowplot)
+
 ```
 
 ## PART A: LOADING SEAL TAG DATA FROM NETCDF FILES
@@ -61,7 +53,7 @@ You can choose whichever file to explore its contents, but you will need to crea
 
 ```{r}
 # Choose a netCDF file from the data folder and load it here
-ras <- rast(ras_filepaths[1])
+ras <- rast(___)
 
 # Check its contents by calling the variable you assigned the netCDF file to
 ras
@@ -78,34 +70,34 @@ varnames(ras)
 `terra` also gives us the option to look at the long names for the variables contained in the file. These will include a better description of what information each variable contains.  
 
 ```{r}
-longnames(ras)
+longnames(___)
 ```
 
 You may notice that the long names for the fluorescence variables are all the same, so we cannot tell exactly what the difference is between them. For now, let's move onto checking the temporal range covered by the data.  
 
 ```{r}
 # Checking time
-time(ras)
+time(___)
 ```
 
 `terra` cannot identify the time in this file, which is an issue when attempting to create time series plots. Finally, let's check the coordinate reference system (CRS).  
 
 ```{r}
 # Checking coordinate reference system (CRS)
-crs(ras)
+crs(___)
 ```
 
 Again, `terra` does not return anything for the CRS, which is problematic if we want to create maps. We can attempt to access all metadata from the file to see if this information was included.
 
 ```{r}
 # We can also check all metadata
-meta(ras)
+meta(___)
 ```
 
 It appears `terra` is not reading the complete file metadata, which is not ideal. You may have also noticed at the beginning of this section that the spatial extent of this file goes well beyond the possible values for latitude and longitude (in decimal degrees). We can check the spatial extent using the `ext` function from the `terra` package, which will return the minimum and maximum values along the `x` and `y` dimensions of the raster file. Try it below.  
 
 ```{r}
-ext(ras)
+ext(___)
 ```
 
 As you can see, the maximum value for the `x` dimension goes well beyond $\pm 180 ^\circ$ or $360 ^\circ$, and the maximum latitude is also beyond $\pm 90 ^\circ$. So, what is happening? Can we trust this information? Probably not.  
@@ -116,17 +108,17 @@ Can we do anything in this case? Yes, luckily, there are plenty of other package
 We will load and explore the content of netCDF files using the `ncdf4` package.  
 
 ```{r}
-nc_file <- nc_open(ras_filepaths[1])
+nc_file <- nc_open(___)
 nc_file
 ```
 
 As you can see, we get much detailed metadata using this package. We can even see a full description for the variables with names starting with `FLUO`, which means we can now understand how they all differ. We have all the extra information we need. We will store some of this metadata though because it may be useful when processing data. For now, we will store metadata for temperature, salinity, fluorescence, and time variables, as well as global attributes. For the fluorescence we will choose the the dark-, NPQ-corrected fluorescence, and you can find more details about the reasons why in Section B1.  
 
 ```{r}
-time_attrs <- ncatt_get(nc_file, "JULD")
-temp_attrs <- ncatt_get(nc_file, "TEMP")
-salt_attrs <- ncatt_get(nc_file, "PSAL")
-fluo_attrs <- ncatt_get(nc_file, "FLUO_DRK_NPQ")
+time_attrs <- ncatt_get(nc_file, " ")
+temp_attrs <- ncatt_get(nc_file, " ")
+salt_attrs <- ncatt_get(nc_file, " ")
+fluo_attrs <- ncatt_get(nc_file, " ")
 global_attrs <- ncatt_get(nc_file, 0)
 ```
 
@@ -139,14 +131,14 @@ fluo_attrs
 Now that we have every we need, we can close the connection to the netCDF file. But if you later realise you forgot something, you can either load the file and extract metadata as we have done above or simply refer to the printed metadata above.  
 
 ```{r}
-nc_close(nc_file)
+nc_close(___)
 ```
 
 We will now use the `metR` package to load the netCDF file as a data frame as this facilitates data analysis in `R`. 
 
 ```{r}
 # Load the file
-df <- ReadNetCDF(ras_filepaths[1])
+df <- ReadNetCDF(___)
 
 # You can check the first few rows of this file
 head(df)
@@ -175,7 +167,7 @@ Let's clean our data frame.
 df <- df |> 
   clean_names() |> 
   # Remember to check the origin date above to get the correct time
-  mutate(time = as_date(juld, origin = time_origin), .after = "juld")
+  mutate(time = as_date(___, origin = ___), .after = "juld")
 
 # Check results
 head(df)
@@ -194,9 +186,9 @@ You probably already noticed that there are multiple fluorescence variables. For
 ```{r}
 df_mean20 <- df |> 
   # Start by selecting any relevant columns
-  select(latitude, longitude, depth, time, temp, psal, fluo_drk_npq) |> 
+  select(latitude, longitude, depth, time, ___, ___, ___) |> 
   # Now filter values for the top 20 m
-  filter(depth >= -20) |>
+  filter(depth >= ___) |>
   # Finally calculate the mean for the variables of interest
   summarise(across(temp:fluo_drk_npq, ~ mean(.x, na.rm = TRUE)), 
             .by = c(latitude, longitude, time))
@@ -217,7 +209,7 @@ Now we will create a map with polar stereographic projection using the seal tag 
 profile_map <- ggplot() +
   # Adding world base layer using geom_polygon(). Note that "fill" and "color" 
   # control the color of the continents and borders, respectively.
-  geom_polygon(data = world,
+  geom_polygon(data = ___,
                aes(x = long, y = lat, group = group),
                fill = "lightgray", color = "black", linewidth = 0.2) +
   # Adding points for profile locations (lat/lon coordinates) and colouring them
@@ -225,20 +217,20 @@ profile_map <- ggplot() +
   # The coordinates are stored in the data frame we processed above. Make sure
   # you use the correct names and axes for the lat/lon variables, and provide a
   # variable in the "colour" option for dynamic colouring.
-  geom_point(data = df_mean20, aes(x = longitude, y = latitude, colour = temp),
+  geom_point(data = ___, aes(x = ___, y = ___, colour = ___),
              size = 1.5, alpha = 0.7) +
   # Use an appropriate color scale. CMOCEAN is a great resource for 
   # colorblind-friendly color palettes. You can find the palettes to choose 
   # from and their names here:
   # https://cran.r-project.org/web/packages/cmocean/vignettes/cmocean.html
-  scale_color_cmocean("SST (deg C)", name = "thermal") +
+  scale_color_cmocean("SST (deg C)", name = " ") +
   # Setting polar projection ("ortho") centered on South Pole (-90˚).
   # Note: To rotate the map, change the second "orientation" value.
-  coord_map("ortho", orientation = c(-90, 0, 0)) +
+  coord_map("ortho", orientation = c(___, 0, 0)) +
   # Adding labels
   labs(title = paste0("Seal Tag Profile Locations (Platform code: ",
-                      global_attrs$platform_code, ")"),
-       subtitle = paste0("Total profiles: ", max(df$n_prof))) +
+                      global_attrs$___, ")"),
+       subtitle = paste0("Total profiles: ", max(df$___))) +
   # Changing x and y axis breaks
   scale_x_continuous(breaks = seq(-180, 180, 30)) +
   scale_y_continuous(breaks = seq(-90, 90, 15)) +
@@ -266,7 +258,7 @@ if(!dir.exists(figure_folder)){
 }
 
 # Now we can save the figure into the correct directory
-ggsave(file.path(figure_folder, "profile_map_temp.png"), profile_map,
+ggsave(file.path(___, "profile_map_temp.png"), ___,
        width = 12, height = 8, dpi = 300)
 ```
 
@@ -278,42 +270,7 @@ Make sure you also save the map to your computer, but don't forget to change the
 
 ```{r}
 # Write your code here
-ggplot() +
-  # Adding world base layer using geom_polygon(). Note that "fill" and "color" 
-  # control the color of the continents and borders, respectively.
-  geom_polygon(data = world,
-               aes(x = long, y = lat, group = group),
-               fill = "lightgray", color = "black", linewidth = 0.2) +
-  # Adding points for profile locations (lat/lon coordinates) and colouring them
-  # by sea surface temperature.
-  # The coordinates are stored in the data frame we processed above. Make sure
-  # you use the correct names and axes for the lat/lon variables, and provide a
-  # variable in the "colour" option for dynamic colouring.
-  geom_point(data = df_mean20, aes(x = longitude, y = latitude, colour = psal),
-             size = 1.5, alpha = 0.7) +
-  # Use an appropriate color scale. CMOCEAN is a great resource for 
-  # colorblind-friendly color palettes. You can find the palettes to choose 
-  # from and their names here:
-  # https://cran.r-project.org/web/packages/cmocean/vignettes/cmocean.html
-  scale_color_cmocean("SSS (psu)", name = "haline") +
-  # Setting polar projection ("ortho") centered on South Pole (-90˚).
-  # Note: To rotate the map, change the second "orientation" value.
-  coord_map("ortho", orientation = c(-90, 0, 0)) +
-  # Adding labels
-  labs(title = paste0("Seal Tag Profile Locations (Platform code: ",
-                      global_attrs$platform_code, ")"),
-       subtitle = paste0("Total profiles: ", max(df$n_prof))) +
-  # Changing x and y axis breaks
-  scale_x_continuous(breaks = seq(-180, 180, 30)) +
-  scale_y_continuous(breaks = seq(-90, 90, 15)) +
-  # Making the map a little nicer
-  theme_minimal() +
-  theme(panel.grid = element_line(color = "lightgray", linewidth = 0.2),
-        panel.background = element_rect(fill = "white"),
-        plot.background = element_rect(fill = "white"),
-        legend.position = "right", legend.title = element_text(hjust = 0.5),
-        axis.title = element_blank(), axis.text = element_blank(), 
-        plot.title = element_text(hjust = 0.5))
+
 ```
 
 
@@ -321,43 +278,7 @@ ggplot() +
 
 ```{r}
 # Write your code here
-ggplot() +
-  # Adding world base layer using geom_polygon(). Note that "fill" and "color" 
-  # control the color of the continents and borders, respectively.
-  geom_polygon(data = world,
-               aes(x = long, y = lat, group = group),
-               fill = "lightgray", color = "black", linewidth = 0.2) +
-  # Adding points for profile locations (lat/lon coordinates) and colouring them
-  # by sea surface temperature.
-  # The coordinates are stored in the data frame we processed above. Make sure
-  # you use the correct names and axes for the lat/lon variables, and provide a
-  # variable in the "colour" option for dynamic colouring.
-  geom_point(data = df_mean20, aes(x = longitude, y = latitude, 
-                                   colour = fluo_drk_npq),
-             size = 1.5, alpha = 0.7) +
-  # Use an appropriate color scale. CMOCEAN is a great resource for 
-  # colorblind-friendly color palettes. You can find the palettes to choose 
-  # from and their names here:
-  # https://cran.r-project.org/web/packages/cmocean/vignettes/cmocean.html
-  scale_color_cmocean(bquote(SSF~(mg%.%m^-3)), name = "algae") +
-  # Setting polar projection ("ortho") centered on South Pole (-90˚).
-  # Note: To rotate the map, change the second "orientation" value.
-  coord_map("ortho", orientation = c(-90, 0, 0)) +
-  # Adding labels
-  labs(title = paste0("Seal Tag Profile Locations (Platform code: ",
-                      global_attrs$platform_code, ")"),
-       subtitle = paste0("Total profiles: ", max(df$n_prof))) +
-  # Changing x and y axis breaks
-  scale_x_continuous(breaks = seq(-180, 180, 30)) +
-  scale_y_continuous(breaks = seq(-90, 90, 15)) +
-  # Making the map a little nicer
-  theme_minimal() +
-  theme(panel.grid = element_line(color = "lightgray", linewidth = 0.2),
-        panel.background = element_rect(fill = "white"),
-        plot.background = element_rect(fill = "white"),
-        legend.position = "right", legend.title = element_text(hjust = 0.5),
-        axis.title = element_blank(), axis.text = element_blank(), 
-        plot.title = element_text(hjust = 0.5))
+
 ```
 
 ## PART C: TIME SERIES OF SEA SURFACE PROPERTIES
@@ -367,8 +288,8 @@ Time series plots usually provide a clearer view of how a variable changes over 
 Create a line plot showing how SST changed over time. 
 
 ```{r}
-sst_timeseries <- df_mean20 |>
-  ggplot(aes(x = time, y = temp)) +
+sst_timeseries <- ___ |>
+  ggplot(aes(x = ___, y = ___)) +
   # Creating a line plot
   geom_line(color = "red", linewidth = 1) +
   # Adding points to show individual measurements
@@ -376,9 +297,8 @@ sst_timeseries <- df_mean20 |>
   # Creating date tick labels formatted as "YYYY-MM-DD"
   scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
   # Adding labels to plot
-  labs(title = paste0("Mean ocean temperature over top 20 m (deg C) during ", 
-                      "seal tagging period"),
-       y = "SST (deg C)") +
+  labs(title = " ",
+       y = " ") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         axis.title.x = element_blank(),
@@ -392,7 +312,7 @@ sst_timeseries
 Finally, we can save the timeseries as an image to our computer.  
 
 ```{r}
-ggsave(file.path(figure_folder, "sst_timeseries.png"), sst_timeseries,
+ggsave(file.path(___, "sst_timeseries.png"), ___,
        width = 10, height = 6, dpi = 300)
 ```
 
@@ -401,51 +321,13 @@ Now it is your turn to create timeseries plots for salinity and fluorescence. Do
 ### C2: SSS time series 
 ```{r}
 # Write your code here
-sss_timeseries <- df_mean20 |>
-  ggplot(aes(x = time, y = psal)) +
-  # Creating a line plot
-  geom_line(color = "red", linewidth = 1) +
-  # Adding points to show individual measurements
-  geom_point(color = "darkred", size = 1.5, alpha = 0.7) +
-  # Creating date tick labels formatted as "YYYY-MM-DD"
-  scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
-  # Adding labels to plot
-  labs(title = paste0("Mean ocean salinity over top 20 m (deg C) during ", 
-                      "seal tagging period"),
-       y = paste0("SSS (", salt_attrs$units, ")")) +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.title.x = element_blank(),
-        panel.background = element_rect(fill = "white"),
-        plot.background = element_rect(fill = "white"))
 
-# Checking results
-sss_timeseries
 ```
 
 ### C3: SSF time series
 ```{r}
 # Write your code here
-ssf_timeseries <- df_mean20 |>
-  ggplot(aes(x = time, y = fluo_drk_npq)) +
-  # Creating a line plot
-  geom_line(color = "red", linewidth = 1) +
-  # Adding points to show individual measurements
-  geom_point(color = "darkred", size = 1.5, alpha = 0.7) +
-  # Creating date tick labels formatted as "YYYY-MM-DD"
-  scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
-  # Adding labels to plot
-  labs(title = paste0("Mean ocean fluorescence over top 20 m (deg C) during ", 
-                      "seal tagging period"),
-       y = bquote(SSF~(mg%.%m^-3))) +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.title.x = element_blank(),
-        panel.background = element_rect(fill = "white"),
-        plot.background = element_rect(fill = "white"))
 
-# Checking results
-ssf_timeseries
 ```
 
 ### C4: *OPTIONAL* Combine time series plots
@@ -454,8 +336,8 @@ We can combine the three time series plots we made so far into a single multi-pa
 ```{r}
 combined_timeseries <- plot_grid(
   plotlist = c(sst_timeseries + theme(axis.text.x = element_blank()),
-               sss_timeseries + theme(axis.text.x = element_blank()),
-               ssf_timeseries), 
+               ___ + theme(axis.text.x = element_blank()),
+               ___), 
   labels = c("A", "B", "C"), ncol = 1, rel_heights = c(1, 1, 1.6))
 
 # We can check the result
@@ -465,8 +347,8 @@ combined_timeseries
 Finally, we can save the composite figure.  
 
 ```{r}
-ggsave(file.path(figure_folder, "combined_timeseries.png"), 
-       combined_timeseries, width = 10, height = 12, dpi = 300)
+ggsave(file.path(___, "combined_timeseries.png"), 
+       ___, width = 10, height = 12, dpi = 300)
 ```
 
 
@@ -476,8 +358,8 @@ A section plot is a helpful way to visualise the water column properties along a
 First, we will prepare the raw data to create the section plots more easily. We will simply select the columns that we will need to create the plots.  
 
 ```{r}
-section_data <- df |> 
-  select(longitude, latitude, time, depth, pres, temp, psal, fluo_drk_npq)
+section_data <- ___ |> 
+  select(longitude, latitude, time, depth, pres, ___, ___, ___)
 
 head(section_data)
 ```
@@ -489,17 +371,17 @@ In this section, we will create a contour plot showing temperature vs depth and 
 For this example, we will use mean ocean temperature (`temp`).  
 
 ```{r}
-temp_section <- section_data |>
+temp_section <- ___ |>
   drop_na(temp) |> 
-  ggplot(aes(x = time, y = depth, z = temp)) +
+  ggplot(aes(x = ___, y = ___, z = ___)) +
   # Add filled contours for temperature
   stat_contour_filled(bins = 10) +
   # Create date tick labels
   scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
   # TODO: Add appropriate color scale and labels
-  scale_fill_cmocean("Temperature (deg C)", name = "thermal", discrete = TRUE) +
-  labs(title = "Ocean temperature",
-       y = "Depth (m)") +
+  scale_fill_cmocean(" ", name = " ", discrete = TRUE) +
+  labs(title = " ",
+       y = " ") +
   guides(fill = guide_legend(ncol = 2)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
@@ -518,7 +400,7 @@ temp_section
 We can now save the figure to our computer.
 
 ```{r}
-ggsave(file.path(figure_folder, "temp_section.png"), temp_section, 
+ggsave(file.path(___, "temp_section.png"), ___, 
        width = 14, height = 8, dpi = 300)
 ```
 
@@ -528,27 +410,7 @@ Using section D1 as a reference, create a section plot for salinity.
 
 ```{r}
 # Write your code here
-salt_section <- section_data |>
-  drop_na(psal) |> 
-  ggplot(aes(x = time, y = depth, z = psal)) +
-  stat_contour_filled(bins = 10) +
-  scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
-  scale_fill_cmocean("Salinity (psu)", name = "haline", discrete = TRUE) +
-  labs(title = "Ocean salinity",
-       y = "Depth (m)") +
-  guides(fill = guide_legend(ncol = 2)) +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.ticks.length.x = unit(0.2, "cm"),
-        legend.position = "right", 
-        legend.title = element_text(hjust = 0.5, face = "italic"), 
-        axis.title.x = element_blank(),
-        panel.background = element_rect(fill = "white"),
-        plot.background = element_rect(fill = "white"),
-        plot.title = element_text(hjust = 0.5))
 
-# Let's check the result
-salt_section
 ```
 
 
@@ -557,28 +419,7 @@ Create a section plot for fluorescence, but note that fluorescence does not chan
 
 ```{r}
 # Write your code here
-fluo_section <- section_data |>
-  drop_na(fluo_drk_npq) |> 
-  ggplot(aes(x = time, y = depth, z = log(fluo_drk_npq))) +
-  stat_contour_filled(bins = 10) +
-  scale_x_date(date_labels = "%Y-%m-%d", date_breaks = "1 month") +
-  scale_fill_cmocean(bquote(Log~fluorescence~(mg%.%m^-3)), name = "algae", 
-                     discrete = TRUE) +
-  labs(title = "Ocean fluorescence",
-       y = "Depth (m)") +
-  theme_bw() +
-  guides(fill = guide_legend(ncol = 2)) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.ticks.length.x = unit(0.2, "cm"),
-        legend.position = "right",
-        legend.title = element_text(hjust = 0.5, face = "italic"), 
-        axis.title.x = element_blank(),
-        panel.background = element_rect(fill = "white"),
-        plot.background = element_rect(fill = "white"),
-        plot.title = element_text(hjust = 0.5))
 
-# Let's check the result
-fluo_section
 ```
 
 
@@ -589,13 +430,13 @@ fluo_section
 combined_section <- plot_grid(
   NULL,
   plot_grid(
-    plotlist = c(temp_section+theme(axis.text.x = element_blank()),
-                 plot_grid(salt_section+theme(axis.text.x = element_blank()), 
+    plotlist = c(___+theme(axis.text.x = element_blank()),
+                 plot_grid(___+theme(axis.text.x = element_blank()), 
                            NULL, rel_widths = c(1, 0.03)),
-                 fluo_section), 
+                 ___), 
     rel_heights = c(1, 1, 1.3), ncol = 1, labels = c("A", "B", "C")),
   rel_heights = c(0.075, 1), ncol = 1)+
-  draw_text(paste0("Tagging data from ", global_attrs$platform_code), 
+  draw_text(paste0("Tagging data from ", global_attrs$___), 
             y = 0.97, x = 0.5, size = 14, fontface = "bold")
 
 # We can check the result
@@ -603,7 +444,7 @@ combined_section
 ```
 
 ```{r}
-ggsave("../figures/combined_section_plots.png", device = "png", width = 14, 
-       height = 8, bg = "white")
+ggsave(file.path(___, "combined_section_plots.png"), ___,
+       device = "png", width = 14, height = 8, bg = "white")
 ```
 
