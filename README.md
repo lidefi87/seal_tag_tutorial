@@ -17,6 +17,8 @@ depths, time and space
 
 ## Getting Started
 ### `R` session
+<details>
+<summary> Click here to see more details </summary>
 This tutorial was developed and tested using `R` version 4.6.0. It is 
 recommended you install `R` version 4.6.0 or higher in your machine. You may 
 also want to install RStudio or VS Code to run this tutorial.  
@@ -54,13 +56,16 @@ loaded via a namespace (and not attached):
 [31] data.table_1.18.4  evaluate_1.0.5     glue_1.8.1         farver_2.1.2       codetools_0.2-20   purrr_1.2.2       
 [37] tools_4.6.0        pkgconfig_2.0.3   
 ```
+</details>
 
 ### `R` packages
+<details>
+<summary> Click here to see more details </summary>
 To run this tutorial in your machine, you will need to install the following
 packages in your machine:  
 
 - `terra`: A widely popular package that performs spatial data analysis in `R`. 
-For more information, see their [documentation]("https://rspatial.github.io/terra/").  
+For more information, see their [documentation](https://rspatial.github.io/terra/).  
 - `ncdf4`: A package for reading, writing and creating netCDF files in `R`. See 
 their [manual](https://cran.r-project.org/web/packages/ncdf4/refman/ncdf4.html) 
 for more information.  
@@ -68,35 +73,35 @@ for more information.
 with the `tidyverse`, making data cleaning and visualisation easier. Originally,
 it was designed to deal with metereological data, but works with netCDF files
 containing any type of data. More information in their 
-[website]("https://eliocamp.github.io/metR/").  
+[website](https://eliocamp.github.io/metR/).  
 - `dplyr`: Used for data cleaning, it is easy to use and it is part of the 
-`tidyverse`. For more information, see their [documentation]("https://dplyr.tidyverse.org/").  
+`tidyverse`. For more information, see their [documentation](https://dplyr.tidyverse.org/).  
 - `tidyr`: Used to make your data "tidier" so it is easier to analyse and 
 visualise. It is also easy to use and part of the `tidyverse`. For more 
-information, see their [documentation]("https://tidyr.tidyverse.org/").  
+information, see their [documentation](https://tidyr.tidyverse.org/).  
 - `stringr`: Data cleaning package specifically designed to deal with strings or
 character data. Part of the `tidyverse`, you can find more information in their
-[documentation]("https://stringr.tidyverse.org/").  
+[documentation](https://stringr.tidyverse.org/).  
 - `lubridate`: This package is designed to make dealing with date-time data much
 easier and flexible. It is also part of the `tidyverse` and you can learn more
-about it by referring to their [documentation]("https://lubridate.tidyverse.org/").  
+about it by referring to their [documentation](https://lubridate.tidyverse.org/).  
 - `ggplot2`: Another package from the `tidyverse`. Unlike previous packages that
 focus on data cleaning/manipulation, this one allows you to create plots and 
 maps with relative ease. It uses an easy-to-learn syntax and creates nice 
 looking plots. For more information, see their 
-[documentation]("https://ggplot2.tidyverse.org/").  
+[documentation](https://ggplot2.tidyverse.org/).  
 - `janitor`: Package that facilitates the initial stages of data exploration and
 data cleaning. It is not part of the `tidyverse`, but definitely a great 
-companion. See their [documentation]("https://cran.r-project.org/web/packages/janitor/vignettes/janitor.html")
+companion. See their [documentation](https://cran.r-project.org/web/packages/janitor/vignettes/janitor.html)
 for more details.  
 - `cmocean`: This package was designed to give oceanographers access to colour 
 palettes that are perceptually uniform and are colourblind-friendly. See their
-[website]("https://cran.r-project.org/web/packages/cmocean/vignettes/cmocean.html") 
+[website](https://cran.r-project.org/web/packages/cmocean/vignettes/cmocean.html) 
 for more information.  
 - `cowplot`: A package designed as an add-on to `ggplot2` that helps create 
 publication-quality figures with relative ease. It allows users to annotate 
 plots and create complex multifaceted figures. Refer to their 
-[documentation]("https://cran.r-project.org/web/packages/cowplot/vignettes/introduction.html") 
+[documentation](https://cran.r-project.org/web/packages/cowplot/vignettes/introduction.html) 
 for more details.  
   
 You can manually install any of these packages by running the `install.packages` 
@@ -109,6 +114,18 @@ install it.
 **Note:** If you have recently installed these packages in your machine, you do 
 not need to install them again. However, if the installation occurred prior to 
 2026, it is worth updating them.  
+</details>
+
+## Tutorial Structure
+For this tutorial, you will work in four groups, each group will work on a 
+different seal tag file see the [Folder structure](#folder-structure) section 
+below for more details.  
+
+Note that the tasks for each group are exactly the same, the only difference is 
+that each group will be using a different data file, so their outputs will look 
+slightly different. 
+
+Also, feel free to name your seal :seal:  
 
 ### Folder structure
 This tutorial uses the following folder structure to make it easier to find and 
@@ -150,8 +167,7 @@ marine_predator_ecology_tutorial/
 └── docs/                ← tutorial with solutions
 ```
 
-## Tutorial Structure
-You will work in four groups, each on a different seal tag file. The tasks are exactly the same, only the output is slightly different. Feel free to name your seal.
+
 
 ### Part A: NetCDF Data Loading and Exploration (~10 minutes)
 In the first part of the tutorial, you will learn how to open and explore the NetCDF file containing the seal tag data. This will help you understand the structure of the data and how to extract the variables you need for analysis.
