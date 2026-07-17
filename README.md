@@ -1,4 +1,4 @@
-# Seal Tag Data Visualization Tutorial - Instructions
+# Seal Tag Data Visualisation Tutorial
 ## Overview
 In this tutorial, you will visualise oceanographic data collected by seal-borne
 tags. These tags record ocean properties, such as temperature, salinity, and 
