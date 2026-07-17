@@ -118,14 +118,15 @@ not need to install them again. However, if the installation occurred prior to
 
 ## Tutorial Structure
 For this tutorial, you will work in four groups, each group will work on a 
-different seal tag file see the [Folder structure](#folder-structure) section 
+different seal tag file. See the [Folder structure](#folder-structure) section 
 below for more details.  
 
-Note that the tasks for each group are exactly the same, the only difference is 
+Note that the tasks for each group are exactly the same (see 
+[Tutorial instructions](#tutorial-instructions)), the only difference is 
 that each group will be using a different data file, so their outputs will look 
 slightly different. 
 
-Also, feel free to name your seal :seal:  
+Also, feel free to give your seal a name :seal:  
 
 ### Folder structure
 This tutorial uses the following folder structure to make it easier to find and 
@@ -136,8 +137,10 @@ marine_predator_ecology_tutorial/
 ├── marine_predator_ecology_tutorial.Rproj     ← R Project file (root anchor)  
 ├── data/                ← original, unmodified data (treat as read-only)  
 ├── scripts/             ← R scripts (.R files), Quarto notebooks (.qmd)  
-├── figures/             ← saved plots  
-└── docs/                ← tutorial with solutions
+├── figures/             ← saved sample plots  
+└── docs/
+│   ├── tutorial_answers/← tutorial with solutions
+│   └── processed/       ← supporting material
 ```
 
 The file you will be working with is `seal_tag_tutorial.qmd` stored under the 
@@ -150,7 +153,7 @@ All netCDF files containing the seal tag data can be found in the `data/`
 folder. Note that there are four different files, each file contains data 
 collected by a different seal. 
 
-**A note on raw data files**
+**A note on raw data files**  
 It is best to never overwrite or modify in any way the original data files. If 
 you would like to save any modifications, it is better if you create subfolders 
 with the `data` folder to make it clearer what is considered raw and processed 
@@ -163,45 +166,75 @@ marine_predator_ecology_tutorial/
 │   ├── raw/             ← original, unmodified data (treat as read-only)  
 │   └── processed/       ← cleaned/transformed data  
 ├── scripts/             ← R scripts (.R files), Quarto notebooks (.qmd)  
-├── figures/             ← saved plots  
-└── docs/                ← tutorial with solutions
+├── figures/             ← saved sample plots  
+└── docs/
+│   ├── tutorial_answers/← tutorial with solutions
+│   └── processed/       ← supporting material
 ```
 
+## Tutorial instructions
+In your group, you will need to complete the four sections (A to D) included in
+the notebook. Make sure all members of your group are using the same file.  
+  
+Remember, when coding you will often find that there are multiple ways to solve 
+a problem. It is not a bad thing if your code looks slightly different than the 
+code developed by other groups. If you solved the problem correctly, then your 
+answer is perfectly fine.  
+  
+### Part A: Loading seal tag data from netCDF files (~10 minutes)
+In the first part of this tutorial, you will learn how to open and explore 
+netCDF files with `terra`, `ncdf4`, and `metR`. This will help you understand 
+the structure of the data and how to extract the variables you need for further 
+analysis.  
 
+**Ǫuestions:**  
+1. What information can you find in the netCDF file?  
+2. How many profiles did the seal tag record?  
+3. When and where were the first and last profiles measured?  
+4. How deep did the seal typically dive?  
 
-### Part A: NetCDF Data Loading and Exploration (~10 minutes)
-In the first part of the tutorial, you will learn how to open and explore the NetCDF file containing the seal tag data. This will help you understand the structure of the data and how to extract the variables you need for analysis.
+### Part B: Create a map of seal locations (~10 minutes)
+Now that the seal data is loaded into your session, you will create a map of the
+locations of your seal while it was tagged. You will colour each location by the
+sea surface temperature encountered by the seal at that location and time.  
+  
+This map will not only show you where the seal travelled to during the tagging 
+period, but it will also give you an idea of the environmental conditions it 
+experienced along the way.  
+  
+**Ǫuestions:**  
+1. What is the southern most point the seal reached? Write down the coordinates.  
+2. How did the sea surface temperature vary across the profile locations? Can 
+you detect any patterns in how temperature changed?  
+3. Why is a polar projection more appropriate than a standard rectangular 
+projection to plot Southern Ocean data?  
 
-Ǫuestions:
-1.	What information can you find in the NetCDF file?
-2.	How many profiles did the seal tag record?
-3.	When and where were the first and last profiles measured?
-4.	How deep did the seal typically dive?
+### Part C: Time series of sea surface properties (~15 minutes)
+In this section, you will create time series plots for sea surface temperature, 
+salinity and fluorescence. This plot will help you see how these variables 
+changed over time (and space) during the seal's trip.  
+  
+**Ǫuestions:**
+1. Can you see any obvious trends over time in any of the ocean variables?  
+2. If you see any trends, what might they indicate?  
 
-### Part B: Mapping Seal Locations (~10 minutes)
-After you've loaded the data, you will create a map of the seal tag profile locations, colouring each profile based on sea surface temperature. This will show you where the seal travelled to during its foraging trip and give you an idea of the changes in environmental conditions along the way.
-
-Ǫuestions:
-1.	What is the Southern most point the seal reached?
-2.	How did the sea surface temperature vary across the profile locations?
-3.	Why is a polar projection more appropriate for Southern Ocean data than a standard rectangular projection?
-
-### Part C: Time Series of Sea Surface Properties (~15 minutes)
-Next, you will plot up time series of sea surface temprature, salinity and fluorescence, to see how these variables change over time (and space) during the seal's foraging trip.
-
-Ǫuestions:
-1.	Do you see any interesting trends over time?
-2.	What might these trends indicate?
-
-### Part D: Pressure Section Plots (~15 minutes)
-Lastly, you will create section plots of temperature, salinity and fluorescence. Section plots are very helpful ways to visualise the water column properties along a transect, as a function of depth (y-axis) and time/location (x-axis). These plots basically show a vertical cut through the ocean as the seal experienced it during its trip.
-
-Ǫuestions
-1.	Based on your observations, what would be a key benefit of seal tag data?
-2.	What does fluorescence tell us about ocean biology and productivity?
-3.	Do the seals appear to target any specific regions? Why might this seal be found in these particular locations? What oceanographic features might be important?
-4.	In the materials, you will find a map of Antarctic coastal polynyas. These are areas of open water in the sea ice zone. Do you see any patterns in the seal's profile locations that might relate to these polynyas?
-5.	What might explain the spatial distribution of the profile locations?
-6.	Are there any biases in the way a seal collects data (compared to robotic platforms like floats)?
-
-Good luck and have fun exploring the data!
+### Part D: Pressure section plots (~15 minutes)
+Finally, you will create section plots for ocean temperature, salinity and 
+fluorescence. Section plots basically show a vertical cut through the ocean as 
+the seal experienced it during its trip. These plots are a very helpful way to 
+visualise how an ocean variable changes as a function of depth (y-axis) and 
+time/location (x-axis).  
+  
+**Ǫuestions:**  
+1. Based on your observations, what would be a key benefit of seal tag data?  
+2. What does fluorescence tell us about ocean biology and productivity?  
+3. Do the seals appear to target any specific regions? Why might this seal find
+at these particular locations? What oceanographic features may be important?  
+4. In the `docs` folder, you will find maps of Antarctic coastal polynyas (i.e., 
+areas of open water in the sea ice zone). Do you see any patterns in the seal's 
+profile locations that might relate to these polynyas?  
+5. What might explain the spatial distribution of the profile locations?  
+6. Are there any biases in the way a seal collects data when compared to other 
+methods, such as robotic platforms like floats?  
+    
+**Good luck and have fun exploring the data!**
